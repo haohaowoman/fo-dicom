@@ -55,7 +55,9 @@ namespace Dicom
 
         Other,
 
-        Private
+        Private,
+
+        Volume
     }
 
     public sealed partial class DicomUID : DicomParseable
@@ -155,6 +157,11 @@ namespace Dicom
 
         public static DicomUID Parse(string s)
         {
+            return Parse(s, "Unknown", DicomUidType.Unknown);
+        }
+
+        public static DicomUID Parse(string s, string name = "Unknown", DicomUidType type = DicomUidType.Unknown)
+        {
             string u = s.TrimEnd(' ', '\0');
 
             DicomUID uid = null;
@@ -163,7 +170,7 @@ namespace Dicom
             //if (!IsValid(u))
             //	throw new DicomDataException("Invalid characters in UID string ['" + u + "']");
 
-            return new DicomUID(u, "Unknown", DicomUidType.Unknown);
+            return new DicomUID(u, name, type);
         }
 
         private static IDictionary<string, DicomUID> _uids;
@@ -188,6 +195,14 @@ namespace Dicom
             }
         }
 
+        public bool IsVolumeStorage
+        {
+            get
+            {
+                return StorageCategory == DicomStorageCategory.Volume;
+            }
+        }
+
         public DicomStorageCategory StorageCategory
         {
             get
@@ -197,6 +212,8 @@ namespace Dicom
                 if (Type != DicomUidType.SOPClass || !Name.Contains("Storage")) return DicomStorageCategory.None;
 
                 if (Name.Contains("Image Storage")) return DicomStorageCategory.Image;
+
+                if (Name.Contains("Volume Storage")) return DicomStorageCategory.Volume;
 
                 if (this == DicomUID.BlendingSoftcopyPresentationStateStorage
                     || this == DicomUID.ColorSoftcopyPresentationStateStorage

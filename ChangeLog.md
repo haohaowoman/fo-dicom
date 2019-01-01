@@ -1,11 +1,22 @@
 #### v.4.0.1 (TBD)
 * internally identify dicom servers by port/ipadress combination instead of only port (#699)
+* DicomDirectory.AddFile returns a reference to the newly added patient-, study-, series- and instance-Record.
 * Update Json DS validation regex (#643)
 * Add option to DicomFile.Open how to deal with large tags (#617)
 * DicomFileMetaInformation now uses pre-existing SourceAET where possible
 * PixelData.GetMinMax now has 2 overloads, one that takes padding into account and one wihtout the padding parameter (#675)
+* string.ToUpper() is replaced by string.ToUpperInvariant() to prevent bad character conversion on turkish system
+* Fix detecting default windowing if a dataset contains several windows configurations (#741)
+* Fix bug in .net core when a image is both flipped in x and y direction (#721)
+* Pass through the timeout parameter from DicomClient.Send to the constructor of DesktopNetworkStream (#732)
+* Added appveyor.yml file for ci by this setting (#729)
+* Bug Fix : anonymized patient name is now encoded with same character set as the original Dicom.
+* add DicomUID.IsVolumeStorage.
+* Bug Fix : DICOM server may throw DicomDataException on association when non-standard transfer syntax was proposed (#749)
+* allow Query/Register/Unregister transfer syntax.
+* Bug Fix : TryGetValue, TryGetValues, TryGetSingleValue should return false instead of throw exception. (#746)
 
-#### v.4.0.0-rc1 (5/22/2018)
+#### v.4.0.0 (9/24/2018)
 * Demonstrate and fix error in RLELossless Transfer Syntax Codec
 * Fixing 2 UWP Networking Bugs (#636, #637)
 * Add List of known Private UID's (#589)
