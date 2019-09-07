@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 namespace Dicom.Network
@@ -64,10 +64,14 @@ namespace Dicom.Network
         {
             try
             {
-                var awaiter =
-                    await
-                    Task.WhenAny(_listener.AcceptTcpClientAsync(), Task.Delay(-1, token)).ConfigureAwait(false);
-
+                Task awaiter;
+                using (var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(token))
+                {
+                    awaiter =
+                        await
+                        Task.WhenAny(_listener.AcceptTcpClientAsync(), Task.Delay(-1, cancelSource.Token)).ConfigureAwait(false);
+                    cancelSource.Cancel();
+                }
                 var tcpClientTask = awaiter as Task<TcpClient>;
                 if (tcpClientTask != null)
                 {
@@ -79,7 +83,8 @@ namespace Dicom.Network
                         _certificate = GetX509Certificate(certificateName);
                     }
 
-                    return new DesktopNetworkStream(tcpClient, _certificate);
+                    //  let DesktopNetworkStream to dispose tcpClient
+                    return new DesktopNetworkStream(tcpClient, _certificate, true);
                 }
 
                 return null;

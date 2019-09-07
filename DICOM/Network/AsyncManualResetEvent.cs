@@ -1,8 +1,9 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
-#if !NET35
 
+using System;
+#if !NET35
 using System.Threading.Tasks;
 
 namespace Dicom.Network
@@ -11,6 +12,7 @@ namespace Dicom.Network
     /// Asynchronous manual reset event class, enabling the possibility to set a return value of <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">Type of value that the event can be set to.</typeparam>
+    [Obsolete("Use the AsyncEx library instead")] // Or Dicom.Network.Client.Tasks.AsyncManualResetEvent if you're a Fellow Oak DICOM contributor
     public class AsyncManualResetEvent<T>
     {
         #region FIELDS
@@ -31,7 +33,6 @@ namespace Dicom.Network
         internal AsyncManualResetEvent(bool isSet, T value)
         {
             _tcs = new TaskCompletionSource<T>();
-
             if (isSet)
                 _tcs.TrySetResult(value);
         }
@@ -65,13 +66,14 @@ namespace Dicom.Network
         {
             get
             {
+                bool isCompleted;
                 lock (_lock)
                 {
-                    return _tcs.Task.IsCompleted;
+                    isCompleted = _tcs.Task.IsCompleted;
                 }
+                return isCompleted;
             }
         }
-
         #endregion
 
         #region METHODS
@@ -84,6 +86,8 @@ namespace Dicom.Network
         {
             lock (_lock)
             {
+                if (_tcs.Task.IsCompleted)
+                    _tcs = new TaskCompletionSource<T>();
                 _tcs.TrySetResult(value);
             }
         }
@@ -95,6 +99,8 @@ namespace Dicom.Network
         {
             lock (_lock)
             {
+                if (_tcs.Task.IsCompleted)
+                    _tcs = new TaskCompletionSource<T>();
                 _tcs.TrySetResult(default(T));
             }
         }
@@ -106,8 +112,7 @@ namespace Dicom.Network
         {
             lock (_lock)
             {
-                if (_tcs.Task.IsCompleted)
-                    _tcs = new TaskCompletionSource<T>();
+                _tcs = new TaskCompletionSource<T>();
             }
         }
 
@@ -117,10 +122,12 @@ namespace Dicom.Network
         /// <returns>Awaitable <see cref="Task{T}"/>, where result is the set value.</returns>
         internal Task<T> WaitAsync()
         {
+            Task<T> task;
             lock (_lock)
             {
-                return _tcs.Task;
+                task = _tcs.Task;
             }
+            return task;
         }
 
         #endregion
@@ -129,6 +136,7 @@ namespace Dicom.Network
     /// <summary>
     /// Asynchronous parameterless manual reset event class.
     /// </summary>
+    [Obsolete("Use the AsyncEx library instead")] // Or Dicom.Network.Client.Tasks.AsyncManualResetEvent if you're a Fellow Oak DICOM contributor
     public sealed class AsyncManualResetEvent : AsyncManualResetEvent<object>
     {
         #region CONSTRUCTORS

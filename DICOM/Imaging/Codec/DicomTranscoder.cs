@@ -1,9 +1,9 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
 using System.Collections.Generic;
-
+using System.Globalization;
 using Dicom.Imaging.Render;
 using Dicom.IO.Buffer;
 using Dicom.IO.Writer;
@@ -89,10 +89,13 @@ namespace Dicom.Imaging.Codec
         public DicomFile Transcode(DicomFile file)
         {
             var f = new DicomFile();
-            f.FileMetaInfo.Add(file.FileMetaInfo);
-            f.FileMetaInfo.TransferSyntax = OutputSyntax;
-            f.Dataset.InternalTransferSyntax = OutputSyntax;
-            f.Dataset.Add(Transcode(file.Dataset));
+            using (var scope = new UnvalidatedScope(f.Dataset))
+            {
+                f.FileMetaInfo.Add(file.FileMetaInfo);
+                f.FileMetaInfo.TransferSyntax = OutputSyntax;
+                f.Dataset.InternalTransferSyntax = OutputSyntax;
+                f.Dataset.Add(Transcode(file.Dataset));
+            }
             return f;
         }
 
@@ -265,7 +268,7 @@ namespace Dicom.Imaging.Codec
 
                 double oldSize = oldPixelData.GetFrame(0).Size;
                 double newSize = newPixelData.GetFrame(0).Size;
-                var ratio = string.Format("{0:0.000}", oldSize / newSize);
+                var ratio = string.Format(CultureInfo.InvariantCulture, "{0:0.000}", oldSize / newSize);
                 newDataset.AddOrUpdate(new DicomDecimalString(DicomTag.LossyImageCompressionRatio, ratio));
             }
 

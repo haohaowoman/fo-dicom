@@ -1,15 +1,17 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System.Collections.Generic;
 
 namespace Dicom
 {
+
     /// <summary>
     /// Representation of a DICOM sequence of items.
     /// </summary>
     public class DicomSequence : DicomItem, IEnumerable<DicomDataset>
     {
+
         /// <summary>
         /// Initializes an instance of the <see cref="DicomSequence"/> class.
         /// </summary>
@@ -40,5 +42,11 @@ namespace Dicom
         {
             return Items.GetEnumerator();
         }
+
+        public override void Validate()
+        {
+            Items?.Each(ds => ds?.Validate());
+        }
+
     }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 namespace Dicom.Network
@@ -35,7 +35,8 @@ namespace Dicom.Network
             DicomPriority priority = DicomPriority.Medium)
             : base(DicomCommandField.CGetRequest, DicomUID.StudyRootQueryRetrieveInformationModelGET, priority)
         {
-            Dataset = new DicomDataset();
+            // when creating requests, one may be forced to use invalid UIDs. So turn off validation
+            Dataset = new DicomDataset().NotValidated();
             Level = DicomQueryRetrieveLevel.Study;
             Dataset.Add(DicomTag.StudyInstanceUID, studyInstanceUid);
         }
@@ -58,7 +59,8 @@ namespace Dicom.Network
             DicomPriority priority = DicomPriority.Medium)
             : base(DicomCommandField.CGetRequest, DicomUID.StudyRootQueryRetrieveInformationModelGET, priority)
         {
-            Dataset = new DicomDataset();
+            // when creating requests, one may be forced to use invalid UIDs. So turn off validation
+            Dataset = new DicomDataset().NotValidated();
             Level = DicomQueryRetrieveLevel.Series;
             Dataset.Add(DicomTag.StudyInstanceUID, studyInstanceUid);
             Dataset.Add(DicomTag.SeriesInstanceUID, seriesInstanceUid);
@@ -86,7 +88,8 @@ namespace Dicom.Network
             DicomPriority priority = DicomPriority.Medium)
             : base(DicomCommandField.CGetRequest, DicomUID.StudyRootQueryRetrieveInformationModelGET, priority)
         {
-            Dataset = new DicomDataset();
+            // when creating requests, one may be forced to use invalid UIDs. So turn off validation
+            Dataset = new DicomDataset().NotValidated();
             Level = DicomQueryRetrieveLevel.Image;
             Dataset.Add(DicomTag.StudyInstanceUID, studyInstanceUid);
             Dataset.Add(DicomTag.SeriesInstanceUID, seriesInstanceUid);

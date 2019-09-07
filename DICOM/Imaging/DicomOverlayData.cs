@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -162,7 +162,7 @@ namespace Dicom.Imaging
         /// </summary>
         public int OriginX
         {
-            get => Dataset.GetValueOrDefault<short>(OverlayTag(DicomTag.OverlayOrigin), 0, 1);
+            get => Dataset.GetValueOrDefault<short>(OverlayTag(DicomTag.OverlayOrigin), 1, 1);
             set => Dataset.AddOrUpdate(OverlayTag(DicomTag.OverlayOrigin), (short)value, (short)OriginY);
         }
 
@@ -171,7 +171,7 @@ namespace Dicom.Imaging
         /// </summary>
         public int OriginY
         {
-            get => Dataset.GetValueOrDefault<short>(OverlayTag(DicomTag.OverlayOrigin), 1, 1);
+            get => Dataset.GetValueOrDefault<short>(OverlayTag(DicomTag.OverlayOrigin), 0, 1);
             set => Dataset.AddOrUpdate(OverlayTag(DicomTag.OverlayOrigin), (short)OriginX, (short)value);
         }
 

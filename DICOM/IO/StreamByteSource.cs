@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System.Collections.Generic;
@@ -164,7 +164,7 @@ namespace Dicom.IO
         /// <inheritdoc />
         public IByteBuffer GetBuffer(uint count)
         {
-            IByteBuffer buffer = null;
+            IByteBuffer buffer;
             if (count == 0)
             {
                 buffer = EmptyBuffer.Value;
@@ -177,6 +177,7 @@ namespace Dicom.IO
             else if (count >= LargeObjectSize && _readOption == FileReadOption.SkipLargeTags)
             {
                 buffer = null;
+                Skip((int)count);
             }
             else // count < LargeOpjectSize || _readOption == FileReadOption.ReadAll
             {

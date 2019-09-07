@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 namespace Dicom.Imaging.LUT
@@ -76,7 +76,7 @@ namespace Dicom.Imaging.LUT
         {
             get
             {
-                return _lut[value + _first].Value;
+                return _lut[(value - _first) > 0 ? (value - _first) : 0].Value;
             }
         }
 

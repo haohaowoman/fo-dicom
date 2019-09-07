@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 #if !NET35
@@ -7,6 +7,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -88,6 +89,7 @@ namespace Dicom.Network
     /// <summary>
     /// General client class for DICOM services.
     /// </summary>
+    [Obsolete("Use Dicom.Network.Client.DicomClient instead")]
     public class DicomClient
     {
         #region FIELDS
@@ -102,11 +104,15 @@ namespace Dicom.Network
 
         private readonly AsyncManualResetEvent _hasRequestsFlag;
 
-        private readonly AsyncManualResetEvent<bool> _associationFlag;
+        private readonly AsyncManualResetEvent _hasAssociationFlag;
 
         private readonly AsyncManualResetEvent<Exception> _completionFlag;
 
-        private readonly ConcurrentQueue<DicomRequest> _requests;
+        private readonly AsyncManualResetEvent _isCleanupStartedFlag;
+
+        private readonly AsyncManualResetEvent _isCleanupFinishedFlag;
+
+        private readonly ConcurrentQueue<StrongBox<DicomRequest>> _requests;
 
         private DicomServiceUser _service;
 
@@ -129,18 +135,21 @@ namespace Dicom.Network
         /// <summary>
         /// Initializes an instance of <see cref="DicomClient"/>.
         /// </summary>
+        [Obsolete("Use Dicom.Network.Client.DicomClient instead")]
         public DicomClient()
         {
             AdditionalPresentationContexts = new List<DicomPresentationContext>();
 
-            _requests = new ConcurrentQueue<DicomRequest>();
+            _requests = new ConcurrentQueue<StrongBox<DicomRequest>>();
             _asyncInvoked = 1;
             _asyncPerformed = 1;
             Linger = DefaultLinger;
 
             _hasRequestsFlag = new AsyncManualResetEvent();
-            _associationFlag = new AsyncManualResetEvent<bool>();
+            _hasAssociationFlag = new AsyncManualResetEvent();
             _completionFlag = new AsyncManualResetEvent<Exception>();
+            _isCleanupStartedFlag = new AsyncManualResetEvent();
+            _isCleanupFinishedFlag = new AsyncManualResetEvent();
         }
 
         #endregion
@@ -247,12 +256,14 @@ namespace Dicom.Network
                 bool connected;
                 lock (_lock)
                 {
-                    connected =_service != null && _service.IsConnected;
+                    connected = _service != null && _service.IsConnected;
                 }
 
                 return connected;
             }
         }
+
+        private bool HasAssociation => _hasAssociationFlag.IsSet;
 
         #endregion
 
@@ -275,12 +286,12 @@ namespace Dicom.Network
         /// <param name="request">DICOM request.</param>
         public void AddRequest(DicomRequest request)
         {
-            _requests.Enqueue(request);
-            _hasRequestsFlag.Set();
+            _requests.Enqueue(new StrongBox<DicomRequest>(request));
+            if(!_hasRequestsFlag.IsSet) _hasRequestsFlag.Set();
         }
 
         /// <summary>
-        /// Synchonously send existing requests to DICOM service.
+        /// Synchronously send existing requests to DICOM service.
         /// </summary>
         /// <param name="host">DICOM host.</param>
         /// <param name="port">Port.</param>
@@ -288,6 +299,7 @@ namespace Dicom.Network
         /// <param name="callingAe">Calling Application Entity Title.</param>
         /// <param name="calledAe">Called Application Entity Title.</param>
         /// <param name="millisecondsTimeout">Timeout in milliseconds for establishing association.</param>
+        [Obsolete("Use Dicom.Network.Client.DicomClient instead")]
         public void Send(string host, int port, bool useTls, string callingAe, string calledAe,
             int millisecondsTimeout = DefaultAssociationTimeout)
         {
@@ -309,7 +321,7 @@ namespace Dicom.Network
 
             try
             {
-                DoSendAsync(_networkStream, assoc, millisecondsTimeout).Wait();
+                DoSendAsync(_networkStream, assoc, millisecondsTimeout, true).Wait();
             }
             catch (AggregateException e)
             {
@@ -328,6 +340,7 @@ namespace Dicom.Network
         /// <param name="calledAe">Called Application Entity Title.</param>
         /// <param name="millisecondsTimeout">Timeout in milliseconds for establishing association.</param>
         /// <returns>Awaitable task.</returns>
+        [Obsolete("Use Dicom.Network.Client.DicomClient instead")]
         public Task SendAsync(string host, int port, bool useTls, string callingAe, string calledAe,
             int millisecondsTimeout = DefaultAssociationTimeout)
         {
@@ -347,7 +360,7 @@ namespace Dicom.Network
                 RemotePort = port
             };
 
-            return DoSendAsync(_networkStream, assoc, millisecondsTimeout);
+            return DoSendAsync(_networkStream, assoc, millisecondsTimeout, true);
         }
 
         /// <summary>
@@ -357,6 +370,7 @@ namespace Dicom.Network
         /// <param name="callingAe">Calling Application Entity Title.</param>
         /// <param name="calledAe">Called Application Entity Title.</param>
         /// <param name="millisecondsTimeout">Timeout in milliseconds for establishing association.</param>
+        [Obsolete("Use Dicom.Network.Client.DicomClient instead")]
         public void Send(INetworkStream stream, string callingAe, string calledAe,
             int millisecondsTimeout = DefaultAssociationTimeout)
         {
@@ -372,7 +386,7 @@ namespace Dicom.Network
 
             try
             {
-                DoSendAsync(stream, assoc, millisecondsTimeout).Wait();
+                DoSendAsync(stream, assoc, millisecondsTimeout, false).Wait();
             }
             catch (AggregateException e)
             {
@@ -389,6 +403,7 @@ namespace Dicom.Network
         /// <param name="calledAe">Called Application Entity Title.</param>
         /// <param name="millisecondsTimeout">Timeout in milliseconds for establishing association.</param>
         /// <returns>Awaitable task.</returns>
+        [Obsolete("Use Dicom.Network.Client.DicomClient instead")]
         public Task SendAsync(INetworkStream stream, string callingAe, string calledAe,
             int millisecondsTimeout = DefaultAssociationTimeout)
         {
@@ -402,7 +417,7 @@ namespace Dicom.Network
                 RemotePort = stream.RemotePort
             };
 
-            return DoSendAsync(stream, assoc, millisecondsTimeout);
+            return DoSendAsync(stream, assoc, millisecondsTimeout, false);
         }
 
         /// <summary>
@@ -416,7 +431,7 @@ namespace Dicom.Network
         {
             try
             {
-                return WaitForAssociationAsync(millisecondsTimeout).Result;
+                return WaitForAssociationAsync(millisecondsTimeout).GetAwaiter().GetResult();
             }
             catch (AggregateException e)
             {
@@ -434,32 +449,24 @@ namespace Dicom.Network
             "Use AssociationAccepted and AssociationRejected events to be notified of association status change.")]
         public async Task<bool> WaitForAssociationAsync(int millisecondsTimeout = DefaultAssociationTimeout)
         {
-            try
-            {
-                using (var cancellationSource = new CancellationTokenSource(millisecondsTimeout))
-                using (cancellationSource.Token.Register(() =>
-                {
-                    _associationFlag.Set(false);
-                    _completionFlag.Set();
-                }, false))
-                {
-                    return await _associationFlag.WaitAsync().ConfigureAwait(false);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                return false;
-            }
+            if (_hasAssociationFlag.IsSet)
+                return true;
+
+            var hasAssociationTask = _hasAssociationFlag.WaitAsync();
+            var timeoutTask = Task.Delay(millisecondsTimeout);
+            var firstCompletedTask = await Task.WhenAny(hasAssociationTask, timeoutTask).ConfigureAwait(false);
+            return firstCompletedTask == hasAssociationTask;
         }
 
         /// <summary>
         /// Synchronously release association.
         /// </summary>
+        [Obsolete("Use Dicom.Network.Client.DicomClient instead")]
         public void Release(int millisecondsTimeout = DefaultReleaseTimeout)
         {
             try
             {
-                ReleaseAsync(millisecondsTimeout).Wait();
+                ReleaseAsync(millisecondsTimeout).GetAwaiter().GetResult();
             }
             catch (AggregateException e)
             {
@@ -472,6 +479,7 @@ namespace Dicom.Network
         /// Asynchronously release association.
         /// </summary>
         /// <returns></returns>
+        [Obsolete("Use Dicom.Network.Client.DicomClient instead")]
         public async Task ReleaseAsync(int millisecondsTimeout = DefaultReleaseTimeout)
         {
             try
@@ -524,14 +532,38 @@ namespace Dicom.Network
             }
         }
 
-        private async Task DoSendAsync(INetworkStream stream, DicomAssociation association, int millisecondsTimeout)
+        /// <summary>
+        /// Requests an association, sends all the requests from the queue and sends an association release request.
+        /// </summary>
+        /// <param name="stream">The stream that is used to send the messages</param>
+        /// <param name="association"></param>
+        /// <param name="millisecondsTimeout">Timeout for Responses on Association Request or Accociation Release</param>
+        /// <param name="forceDisconnect">if true, then the network stream is forced to be closed after the association has been released.</param>
+        /// <returns></returns>
+        private async Task DoSendAsync(INetworkStream stream, DicomAssociation association, int millisecondsTimeout, bool forceDisconnect)
         {
             try
             {
-                if (!IsConnected)
+                if (_service?.IsAssociationReleasing == true)
                 {
-                    _associationFlag.Reset();
+                    Logger.Debug($"Still releasing previous association, waiting for that first");
+                    await _completionFlag.WaitAsync().ConfigureAwait(false);
+                    Logger.Debug("OK association is released");
+                }
+
+                if (_isCleanupStartedFlag.IsSet)
+                {
+                    Logger.Debug("Still cleaning up previous association / connection, waiting for that first");
+                    await _isCleanupFinishedFlag.WaitAsync().ConfigureAwait(false);
+                    Logger.Debug("OK previous association / connection is cleaned up");
+                }
+
+                if (!IsConnected || _completionFlag.IsSet)
+                {
+                    _hasAssociationFlag.Reset();
                     _completionFlag.Reset();
+                    _isCleanupStartedFlag.Reset();
+                    _isCleanupFinishedFlag.Reset();
 
                     _service = new DicomServiceUser(this, stream, association, Options, FallbackEncoding, Logger);
                     _serviceRunnerTask = _service.RunAsync();
@@ -542,14 +574,14 @@ namespace Dicom.Network
             catch (Exception e)
             {
                 Logger.Error("Failed to send due to: {@error}", e);
-                _associationFlag.Set(false);
+                _hasAssociationFlag.Reset();
                 _completionFlag.Set();
 
                 throw;
             }
             finally
             {
-                await CleanupAsync(false).ConfigureAwait(false);
+                await CleanupAsync(forceDisconnect).ConfigureAwait(false);
             }
         }
 
@@ -575,25 +607,56 @@ namespace Dicom.Network
             }
         }
 
-        private async Task SendQueuedRequestsAsync()
+        private async Task<bool> SendQueuedRequestsAsync()
         {
-            await _hasRequestsFlag.WaitAsync().ConfigureAwait(false);
-
-            DicomRequest request;
-            while (IsConnected && _requests.TryDequeue(out request))
+            if (!_hasRequestsFlag.IsSet)
             {
-                await _service.SendRequestAsync(request).ConfigureAwait(false);
+                await _hasRequestsFlag.WaitAsync().ConfigureAwait(false);
             }
 
-            if (_requests.IsEmpty) _hasRequestsFlag.Reset();
+            bool requestsWereSent = false;
+
+            while (IsConnected && HasAssociation && !_service.IsAssociationReleasing && _requests.TryDequeue(out var request))
+            {
+                await _service.SendRequestAsync(request.Value).ConfigureAwait(false);
+
+                request.Value = null;
+                requestsWereSent = true;
+            }
+
+            if (_requests.IsEmpty)
+            {
+                _hasRequestsFlag.Reset();
+            }
+
+            return requestsWereSent;
         }
 
         private async Task CleanupAsync(bool force)
         {
-            var completedException = await _completionFlag.WaitAsync().ConfigureAwait(false);
+            if(!_isCleanupStartedFlag.IsSet) _isCleanupStartedFlag.Set();
+
+            var completionTask = _completionFlag.WaitAsync();
+
+            while(IsConnected)
+            {
+                await Task.WhenAny(completionTask, Task.Delay(1000)).ConfigureAwait(false);
+
+                if (completionTask.IsCompleted || completionTask.IsFaulted || completionTask.IsCanceled)
+                    break;
+
+                Logger.Warn("Waited 1 second to cleanup but completion flag is still not set. Trying to flush next message");
+
+                await _service.SendNextMessageAsync().ConfigureAwait(false);
+            }
+
+            var completedException = completionTask.IsCompleted ? completionTask.Result : null;
 
             if (completedException != null || force)
             {
+                var reason = force ? "'force' is true" : $"an exception caused the completion flag to be set: {completedException}";
+                Logger.Warn($"Disposing network stream because {reason}");
+
                 if (_networkStream != null)
                 {
                     try
@@ -621,10 +684,17 @@ namespace Dicom.Network
 
                     _service = null;
                 }
+
+                // Wait until listener realizes connection is gone. If DicomServiceUser's constructor threw, _serviceRunnerTask can be null
+                if (_serviceRunnerTask != null)
+                {
+                    await _serviceRunnerTask.ConfigureAwait(false);
+                }
             }
 
-            // If not already set, set association notifier here to signal completion to awaiters
-            _associationFlag.Set(false);
+            if (_hasAssociationFlag.IsSet) _hasAssociationFlag.Reset();
+
+            if (!_isCleanupFinishedFlag.IsSet) _isCleanupFinishedFlag.Set();
 
             if (completedException != null)
             {
@@ -646,9 +716,13 @@ namespace Dicom.Network
 
             private bool _isInitialized;
 
-            private bool _releaseRequested;
+            private int _releaseRequested;
 
-            private readonly object _lock = new object();
+            #endregion
+
+            #region PROPERTIES
+
+            public bool IsAssociationReleasing => _releaseRequested == 1;
 
             #endregion
 
@@ -673,7 +747,7 @@ namespace Dicom.Network
                 List<DicomRequest> requests;
                 lock (_client._lock)
                 {
-                    requests = new List<DicomRequest>(_client._requests);
+                    requests = _client._requests.Select(s => s.Value).ToList();
                 }
 
                 foreach (var request in requests)
@@ -692,7 +766,7 @@ namespace Dicom.Network
 
                 _association = association;
                 _isInitialized = false;
-                _releaseRequested = false;
+                _releaseRequested = 0;
             }
 
             #endregion
@@ -711,7 +785,7 @@ namespace Dicom.Network
                     }
                 }
 
-                SetAssociationFlag(true);
+                SetHasAssociationFlag(true);
                 _client.AssociationAccepted(_client, new AssociationAcceptedEventArgs(association));
             }
 
@@ -721,7 +795,7 @@ namespace Dicom.Network
                 DicomRejectSource source,
                 DicomRejectReason reason)
             {
-                SetAssociationFlag(false);
+                SetHasAssociationFlag(false);
                 _client.AssociationRejected(_client, new AssociationRejectedEventArgs(result, source, reason));
 
                 SetCompletionFlag(new DicomAssociationRejectedException(result, source, reason));
@@ -731,6 +805,7 @@ namespace Dicom.Network
             public void OnReceiveAssociationReleaseResponse()
             {
                 SetCompletionFlag();
+
                 _client.AssociationReleased(_client, EventArgs.Empty);
             }
 
@@ -768,21 +843,46 @@ namespace Dicom.Network
             {
                 try
                 {
-                    bool requestRelease;
-                    lock (_lock) requestRelease = !_releaseRequested;
-
-                    if (requestRelease)
+                    if (!IsConnected)
                     {
-                        lock (_lock) _releaseRequested = true;
-                        await Task.WhenAny(SendAssociationReleaseRequestAsync(), _isDisconnectedFlag.WaitAsync(),
-                            Task.Delay(millisecondsTimeout)).ConfigureAwait(false);
-
-                        SetCompletionFlag();
+                        Logger.Warn($"Tried to release association but we're no longer connected");
+                        return;
                     }
 
+                    if (Interlocked.Exchange(ref _releaseRequested, 1) != 0)
+                    {
+                        Logger.Warn("Tried to release association from multiple threads in parallel, this thread lost the race and won't try to release the association");
+                        return;
+                    }
+
+                    var sendAssociationReleaseRequestTask = SendAssociationReleaseRequestAsync();
+                    var sendAssociationReleaseRequestTimeoutTask = Task.Delay(millisecondsTimeout);
+                    var waitUntilDisconnectionTask = _isDisconnectedFlag.WaitAsync();
+
+                    var firstCompletedTask = await Task.WhenAny(
+                        sendAssociationReleaseRequestTask,
+                        waitUntilDisconnectionTask,
+                        sendAssociationReleaseRequestTimeoutTask
+                    ).ConfigureAwait(false);
+
+                    if (firstCompletedTask == sendAssociationReleaseRequestTimeoutTask)
+                    {
+                        Logger.Debug($"Timeout while trying to release the association");
+                        SetCompletionFlag();
+                    }
+                    else if (firstCompletedTask == waitUntilDisconnectionTask)
+                    {
+                        Logger.Debug($"Disconnected while trying to release the association");
+                        SetCompletionFlag();
+                    }
+                    else if (firstCompletedTask == sendAssociationReleaseRequestTask)
+                    {
+                        Logger.Debug("Association release request was sent successfully");
+                    }
                 }
                 catch (Exception e)
                 {
+                    _releaseRequested = 0;
                     Logger.Warn("Attempt to send association release request failed due to: {@error}", e);
                     SetCompletionFlag(e);
                 }
@@ -802,22 +902,89 @@ namespace Dicom.Network
             /// <inheritdoc />
             protected override async Task OnSendQueueEmptyAsync()
             {
-                await Task.WhenAny(
-                    _client.SendQueuedRequestsAsync(),
-                    _isDisconnectedFlag.WaitAsync()
-                        .ContinueWith(_ => SetCompletionFlag(), TaskContinuationOptions.OnlyOnRanToCompletion),
-                    Task.Delay(_client.Linger)
-                        .ContinueWith(_ => DoSendAssociationReleaseRequestAsync(DefaultReleaseTimeout),
-                            TaskContinuationOptions.OnlyOnRanToCompletion)).ConfigureAwait(false);
+                var lingerCancellationTokenSource = new CancellationTokenSource();
+
+                void CancelLingering(string reason)
+                {
+                    if (!lingerCancellationTokenSource.IsCancellationRequested)
+                    {
+                        Logger.Debug($"Won't linger association because {reason}");
+                        lingerCancellationTokenSource.Cancel();
+                    }
+                }
+
+
+                var newRequestsComeIn = _client._hasRequestsFlag.WaitAsync()
+                    .ContinueWith(_ => CancelLingering("another DICOM request was just added"),
+                        TaskContinuationOptions.OnlyOnRanToCompletion);
+                var nextRequestsAreSent = _client.SendQueuedRequestsAsync()
+                    .ContinueWith(requestsWereSent =>
+                    {
+                        if(requestsWereSent.Result) CancelLingering("another DICOM request was just sent");
+                    }, TaskContinuationOptions.OnlyOnRanToCompletion);
+                var lingerAssociation = Task.Delay(_client.Linger, lingerCancellationTokenSource.Token)
+                    .ContinueWith(async _ => await LingerAsync(DefaultReleaseTimeout), TaskContinuationOptions.OnlyOnRanToCompletion);
+
+                await Task.WhenAny(newRequestsComeIn, nextRequestsAreSent, lingerAssociation)
+                    .ConfigureAwait(false);
             }
 
-            private void SetAssociationFlag(bool isAssociated)
+            private async Task LingerAsync(int millisecondsTimeout)
             {
-                _client._associationFlag.Set(isAssociated);
+                if (!IsConnected)
+                {
+                    Logger.Debug($"Not releasing association after linger because the connection is already gone");
+                    return;
+                }
+
+                if (!_client._requests.IsEmpty)
+                {
+                    Logger.Debug($"Not releasing association after linger because at least one request is waiting to be processed");
+                    return;
+                }
+
+                if (!IsSendQueueEmpty)
+                {
+                    Logger.Debug($"Not releasing association because at least one request is being processed");
+                    return;
+                }
+
+                if (IsAssociationReleasing)
+                {
+                    Logger.Debug($"Not releasing association after linger because something else already triggered an association release request");
+                    return;
+                }
+
+                if (!_client.HasAssociation)
+                {
+                    Logger.Debug($"Not releasing association after linger because there is no active association anymore");
+                    return;
+                }
+
+                Logger.Info($"Automatically releasing association after linger timeout of {_client.Linger}ms");
+
+                await DoSendAssociationReleaseRequestAsync(millisecondsTimeout).ConfigureAwait(false);
+            }
+
+            private void SetHasAssociationFlag(bool isAssociated)
+            {
+                if (isAssociated)
+                {
+                    if(!_client._hasAssociationFlag.IsSet)
+                        _client._hasAssociationFlag.Set();
+                }
+                else
+                {
+                    _client._hasAssociationFlag.Reset();
+                }
             }
 
             private void SetCompletionFlag(Exception exception = null)
             {
+                Interlocked.Exchange(ref _releaseRequested, 0);
+
+                if (_client._completionFlag.IsSet)
+                    return;
                 _client._completionFlag.Set(exception);
             }
 

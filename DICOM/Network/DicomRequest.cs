@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -55,6 +55,33 @@ namespace Dicom.Network
         {
             get => Command.GetSingleValue<ushort>(DicomTag.MessageID);
             protected set => Command.AddOrUpdate(DicomTag.MessageID, value);
+        }
+
+        #endregion
+
+        #region EVENTS
+
+        /// <summary>
+        /// Event handler for when this DICOM request times out.
+        /// This will be triggered when the server takes too long to respond, or when it takes us too long to send the request in the first place.
+        /// </summary>
+        public EventHandler<OnTimeoutEventArgs> OnTimeout;
+
+        #endregion
+
+        #region EVENTARGS
+
+        public class OnTimeoutEventArgs
+        {
+            /// <summary>
+            /// The timeout duration that was exceeded for this request
+            /// </summary>
+            public TimeSpan Timeout { get; set; }
+
+            public OnTimeoutEventArgs(TimeSpan timeout)
+            {
+                Timeout = timeout;
+            }
         }
 
         #endregion

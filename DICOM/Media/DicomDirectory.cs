@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 namespace Dicom.Media
@@ -91,6 +91,18 @@ namespace Dicom.Media
             set => FileMetaInfo.MediaStorageSOPInstanceUID = value;
         }
 
+        internal bool ValidateItems { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets if the content of DicomItems shall be validated as soon as they are added to the DicomDataset
+        /// </summary>
+        [Obsolete("Use this property with care. You can suppress validation, but be aware you might create invalid Datasets if you need to set this property.", false)]
+        public bool AutoValidate
+        {
+            get => ValidateItems;
+            set => ValidateItems = value;
+        }
+
         #endregion
 
         #region Constructors
@@ -161,6 +173,7 @@ namespace Dicom.Media
             {
                 df.File = IOManager.CreateFileReference(fileName);
 
+                using (var unvalidated = new UnvalidatedScope(df.Dataset))
                 using (var source = new FileByteSource(df.File, readOption))
                 {
                     var reader = new DicomFileReader();
@@ -174,7 +187,9 @@ namespace Dicom.Media
                             dirObserver),
                         stop);
 
-                    return FinalizeDicomDirectoryLoad(df, reader, dirObserver, result);
+                    df = FinalizeDicomDirectoryLoad(df, reader, dirObserver, result);
+
+                    return df;
                 }
             }
             catch (Exception e)
@@ -213,18 +228,23 @@ namespace Dicom.Media
             {
                 var source = new StreamByteSource(stream, readOption);
 
-                var reader = new DicomFileReader();
-                var dirObserver = new DicomDirectoryReaderObserver(df.Dataset);
+                using (var unvalidated = new UnvalidatedScope(df.Dataset))
+                {
+                    var reader = new DicomFileReader();
+                    var dirObserver = new DicomDirectoryReaderObserver(df.Dataset);
 
-                var result = reader.Read(
-                    source,
-                    new DicomDatasetReaderObserver(df.FileMetaInfo),
-                    new DicomReaderMultiObserver(
-                        new DicomDatasetReaderObserver(df.Dataset, fallbackEncoding),
-                        dirObserver),
-                    stop);
+                    var result = reader.Read(
+                        source,
+                        new DicomDatasetReaderObserver(df.FileMetaInfo),
+                        new DicomReaderMultiObserver(
+                            new DicomDatasetReaderObserver(df.Dataset, fallbackEncoding),
+                            dirObserver),
+                        stop);
 
-                return FinalizeDicomDirectoryLoad(df, reader, dirObserver, result);
+                    df = FinalizeDicomDirectoryLoad(df, reader, dirObserver, result);
+                }
+
+                return df;
             }
             catch (Exception e)
             {
@@ -263,6 +283,7 @@ namespace Dicom.Media
             {
                 df.File = IOManager.CreateFileReference(fileName);
 
+                using (var unvalidated = new UnvalidatedScope(df.Dataset))
                 using (var source = new FileByteSource(df.File, readOption))
                 {
                     var reader = new DicomFileReader();
@@ -278,7 +299,9 @@ namespace Dicom.Media
                             dirObserver),
                             stop).ConfigureAwait(false);
 
-                    return FinalizeDicomDirectoryLoad(df, reader, dirObserver, result);
+                    df = FinalizeDicomDirectoryLoad(df, reader, dirObserver, result);
+
+                    return df;
                 }
             }
             catch (Exception e)
@@ -317,20 +340,25 @@ namespace Dicom.Media
             {
                 var source = new StreamByteSource(stream, readOption);
 
-                var reader = new DicomFileReader();
-                var dirObserver = new DicomDirectoryReaderObserver(df.Dataset);
+                using (var unvalidatedScop = new UnvalidatedScope(df.Dataset))
+                {
+                    var reader = new DicomFileReader();
+                    var dirObserver = new DicomDirectoryReaderObserver(df.Dataset);
 
-                var result =
-                    await
-                    reader.ReadAsync(
-                        source,
-                        new DicomDatasetReaderObserver(df.FileMetaInfo),
-                        new DicomReaderMultiObserver(
-                        new DicomDatasetReaderObserver(df.Dataset, fallbackEncoding),
-                        dirObserver),
-                        stop).ConfigureAwait(false);
+                    var result =
+                        await
+                        reader.ReadAsync(
+                            source,
+                            new DicomDatasetReaderObserver(df.FileMetaInfo),
+                            new DicomReaderMultiObserver(
+                            new DicomDatasetReaderObserver(df.Dataset, fallbackEncoding),
+                            dirObserver),
+                            stop).ConfigureAwait(false);
 
-                return FinalizeDicomDirectoryLoad(df, reader, dirObserver, result);
+                    df = FinalizeDicomDirectoryLoad(df, reader, dirObserver, result);
+                }
+
+                return df;
             }
             catch (Exception e)
             {
@@ -590,16 +618,16 @@ namespace Dicom.Media
         private DicomDirectoryRecord CreatePatientRecord(DicomDataset dataset)
         {
             var patientId = dataset.GetSingleValueOrDefault(DicomTag.PatientID, string.Empty);
-            var patientName = dataset.GetSingleValueOrDefault(DicomTag.PatientName, string.Empty);
+            var patientName = dataset.GetDicomItem<DicomPersonName>(DicomTag.PatientName);
 
             var currentPatient = RootDirectoryRecord;
 
             while (currentPatient != null)
             {
                 var currPatId = currentPatient.GetSingleValueOrDefault(DicomTag.PatientID, string.Empty);
-                var currPatName = currentPatient.GetSingleValueOrDefault(DicomTag.PatientName, string.Empty);
+                var currPatName = currentPatient.GetDicomItem<DicomPersonName>(DicomTag.PatientName);
 
-                if (currPatId == patientId && currPatName == patientName)
+                if (currPatId == patientId && DicomPersonName.HaveSameContent(currPatName, patientName))
                 {
                     return currentPatient;
                 }
@@ -630,12 +658,13 @@ namespace Dicom.Media
             return newPatient;
         }
 
+
         private DicomDirectoryRecord CreateRecordSequenceItem(DicomDirectoryRecordType recordType, DicomDataset dataset)
         {
             if (recordType == null) throw new ArgumentNullException(nameof(recordType));
             if (dataset == null) throw new ArgumentNullException(nameof(dataset));
 
-            var sequenceItem = new DicomDirectoryRecord
+            var sequenceItem = new DicomDirectoryRecord(ValidateItems)
             {
                 //add record item attributes
                 { DicomTag.OffsetOfTheNextDirectoryRecord, 0U },

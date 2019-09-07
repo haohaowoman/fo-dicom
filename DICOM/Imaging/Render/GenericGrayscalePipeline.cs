@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using Dicom.Imaging.LUT;
@@ -14,7 +14,9 @@ namespace Dicom.Imaging.Render
 
         private CompositeLUT _lut;
 
-        private readonly ModalityLUT _rescaleLut;
+        private readonly IModalityLUT _modalityLut;
+
+        private readonly VOISequenceLUT _voiSequenceLut;
 
         private readonly VOILUT _voiLut;
 
@@ -36,7 +38,11 @@ namespace Dicom.Imaging.Render
         public GenericGrayscalePipeline(GrayscaleRenderOptions options)
         {
             _options = options;
-            if (_options.RescaleSlope != 1.0 || _options.RescaleIntercept != 0.0) _rescaleLut = new ModalityLUT(_options);
+            if (options.ModalityLUTSequence != null)
+                _modalityLut = new ModalitySequenceLUT(_options);
+            else if (_options.RescaleSlope != 1.0 || _options.RescaleIntercept != 0.0)
+                _modalityLut = new ModalityRescaleLUT(_options);
+            if(_options.VOILUTSequence != null) _voiSequenceLut = new VOISequenceLUT(_options);
             _voiLut = VOILUT.Create(_options);
             _outputLut = new OutputLUT(_options);
             if (_options.Invert) _invertLut = new InvertLUT(_outputLut.MinimumOutputValue, _outputLut.MaximumOutputValue);
@@ -56,7 +62,8 @@ namespace Dicom.Imaging.Render
                 if (_lut == null)
                 {
                     CompositeLUT composite = new CompositeLUT();
-                    if (_rescaleLut != null) composite.Add(_rescaleLut);
+                    if (_modalityLut != null) composite.Add(_modalityLut);
+                    if (_voiSequenceLut != null) composite.Add(_voiSequenceLut);
                     composite.Add(_voiLut);
                     composite.Add(_outputLut);
                     if (_invertLut != null) composite.Add(_invertLut);

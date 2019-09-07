@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using Windows.Networking;
@@ -27,8 +27,6 @@ namespace Dicom.Network
         private CancellationTokenRegistration _tokenRegistration;
 
         private StreamSocketListener _listener;
-
-        private StreamSocket _socket;
 
         #endregion
 
@@ -76,8 +74,6 @@ namespace Dicom.Network
             _tokenRegistration.Dispose();
             _listener.ConnectionReceived -= OnConnectionReceived;
             _listener.Dispose();
-            _socket?.Dispose();
-            _socket = null;
         }
 
         /// <inheritdoc />
@@ -109,10 +105,8 @@ namespace Dicom.Network
         /// <see cref="StreamSocketListenerConnectionReceivedEventArgs.Socket">Socket</see>/> property is saved for later use.</param>
         private void OnConnectionReceived(StreamSocketListener sender, StreamSocketListenerConnectionReceivedEventArgs args)
         {
-            _socket?.Dispose();
-            _socket = args.Socket;
             _tokenRegistration.Dispose();
-            _streamTcs?.TrySetResult(new WindowsNetworkStream(_socket));
+            _streamTcs?.TrySetResult(new WindowsNetworkStream(args.Socket, true));
         }
 
         #endregion

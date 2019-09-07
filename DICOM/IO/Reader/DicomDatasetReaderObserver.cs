@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -165,7 +165,7 @@ namespace Dicom.IO.Reader
         {
             DicomSequence sq = _sequences.Peek();
 
-            DicomDataset item = new DicomDataset();
+            DicomDataset item = new DicomDataset().NotValidated();
             sq.Items.Add(item);
 
             _datasets.Push(item);

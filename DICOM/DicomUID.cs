@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 namespace Dicom
@@ -62,77 +62,41 @@ namespace Dicom
 
     public sealed partial class DicomUID : DicomParseable
     {
-        public static string RootUID { get; set; }
-
-        private string _uid;
-
-        private string _name;
-
-        private DicomUidType _type;
-
-        private bool _retired;
+        public static string RootUID { get; set; } = "1.2.826.0.1.3680043.2.1343.1";
 
         public DicomUID(string uid, string name, DicomUidType type, bool retired = false)
         {
-            _uid = uid;
-            _name = name;
-            _type = type;
-            _retired = retired;
+            UID = uid;
+            Name = name;
+            Type = type;
+            IsRetired = retired;
         }
 
-        public string UID
-        {
-            get
-            {
-                return _uid;
-            }
-        }
+        public string UID { get; private set; }
 
-        public string Name
-        {
-            get
-            {
-                return _name;
-            }
-        }
+        public string Name { get; private set; }
 
-        public DicomUidType Type
-        {
-            get
-            {
-                return _type;
-            }
-        }
+        public DicomUidType Type { get; private set; }
 
-        public bool IsRetired
-        {
-            get
-            {
-                return _retired;
-            }
-        }
+        public bool IsRetired { get; private set; }
 
         public static void Register(DicomUID uid)
         {
             _uids.Add(uid.UID, uid);
         }
 
-        public static DicomUID Generate(string name)
-        {
-            if (string.IsNullOrEmpty(RootUID))
-            {
-                RootUID = "1.2.826.0.1.3680043.2.1343.1";
-            }
-
-            var uid = $"{RootUID}.{DateTime.UtcNow}.{DateTime.UtcNow.Ticks}";
-
-            return new DicomUID(uid, name, DicomUidType.SOPInstance);
-        }
-
         public static DicomUID Generate()
         {
-            var generator = new DicomUIDGenerator();
-            return DicomUIDGenerator.GenerateNew();
+            return DicomUIDGenerator.GenerateDerivedFromUUID();
+        }
+
+        [Obsolete("This method may return statistically non-unique UIDs and is deprecated, use the method Generate()")]
+        public static DicomUID Generate(string name)
+        {
+            var now = DateTime.UtcNow;
+            var uid = $"{RootUID}.{now.ToString("yyyyMMddHHmmss")}.{now.Ticks}";
+
+            return new DicomUID(uid, name, DicomUidType.SOPInstance);
         }
 
         public static DicomUID Append(DicomUID baseUid, long nextSeq)

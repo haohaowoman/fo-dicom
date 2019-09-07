@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>    
-    <TargetFramework>netcoreapp1.1</TargetFramework>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
     <AssemblyName>DICOM [Unit Tests]</AssemblyName>
     <RootNamespace>Dicom</RootNamespace>
     <SignAssembly>true</SignAssembly>
@@ -46,20 +46,35 @@
     <None Include="..\Desktop\Test Data\GH538-jpeg14sv1.dcm" Link="Test Data\GH538-jpeg14sv1.dcm">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="..\Desktop\Test Data\10200904.dcm" Link="Test Data\10200904.dcm">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Desktop\Test Data\GH064.dcm" Link="Test Data\GH064.dcm">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Desktop\Test Data\CR-MONO1-10-chest" Link="Test Data\CR-MONO1-10-chest">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Desktop\Test Data\TestPattern_RGB.dcm" Link="Test Data\TestPattern_RGB.dcm">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Desktop\Helpers\XUnitDicomLogger.cs" Link="Helpers\XUnitDicomLogger.cs" />
     <Compile Include="..\..\SharedAssemblyInfo.cs" Link="Properties\SharedAssemblyInfo.cs" />
     <Compile Include="..\Desktop\Properties\AssemblyInfo.cs" Link="Properties\AssemblyInfo.cs" />
     <Compile Include="..\Desktop\Bugs\VideoCStoreProvider.cs" Link="Bugs\VideoCStoreProvider.cs" />
     <Compile Include="..\Desktop\Bugs\GH538.cs" Link="Bugs\GH538.cs" />
+    <Compile Include="..\Desktop\Bugs\GH745.cs" Link="Bugs\GH745.cs" />
     <Compile Include="..\Desktop\Imaging\DicomPixelDataTest.cs" Link="Imaging\DicomPixelDataTest.cs" />
-    <Compile Include="..\Desktop\Imaging\Codec\DicomCodecExtensionsTest.cs" Link="Imaging\DicomCodecExtensionsTest.cs"/>
+    <Compile Include="..\Desktop\Imaging\Codec\DicomCodecExtensionsTest.cs" Link="Imaging\DicomCodecExtensionsTest.cs" />
     <Compile Include="..\Desktop\Log\TextWriterLoggerTest.cs" Link="Log\TextWriterLoggerTest.cs" />
     <Compile Include="..\Desktop\DicomDatasetTest.cs" Link="DicomDatasetTest.cs" />
     <Compile Include="..\Desktop\DicomDictionaryTest.cs" Link="DicomDictionaryTest.cs" />
     <Compile Include="..\Desktop\DicomEncodingTest.cs" Link="DicomEncodingTest.cs" />
     <Compile Include="..\Desktop\Network\DicomClientTest.cs" Link="Network\DicomClientTest.cs" />
+    <Compile Include="..\Desktop\Network\Client\DicomClientTest.cs" Link="Network\Client\DicomClientTest.cs" />
     <Compile Include="..\Desktop\Network\Ports.cs" Link="Network\Ports.cs" />
     <Compile Include="..\Desktop\Network\SimpleCStoreProvider.cs" Link="Network\SimpleCStoreProvider.cs" />
   </ItemGroup>

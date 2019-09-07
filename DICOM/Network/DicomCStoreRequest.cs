@@ -1,5 +1,8 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
+
+using System;
+using System.Collections.Generic;
 
 namespace Dicom.Network
 {
@@ -10,14 +13,14 @@ namespace Dicom.Network
     /// The following example shows how to use the <see cref="DicomClient"/> class to send DICOM C-Store requests to a DICOM C-Store SCP.
     /// <code>
     /// var client = new DicomClient();
-    /// 
+    ///
     /// // queue C-Store request to send DICOM file
     /// client.Add(new DicomCStoreRequest(@"test1.dcm") {
     ///		OnResponseReceived = (DicomCStoreRequest req, DicomCStoreResponse rsp) => {
     ///			Console.WriteLine("{0}: {1}", req.SOPInstanceUID, rsp.Status);
     ///		}
     /// });
-    /// 
+    ///
     /// // queue C-Store request with additional proposed transfer syntaxes
     /// client.Add(new DicomCStoreRequest(@"test2.dcm") {
     ///		AdditionalTransferSyntaxes = new DicomTransferSyntax[] {
@@ -25,7 +28,7 @@ namespace Dicom.Network
     ///			DicomTransferSyntax.JPEG2000Lossless
     ///		}
     /// });
-    /// 
+    ///
     /// // connect and send queued requests
     /// client.Send("127.0.0.1", 12345, false, "SCU", "ANY-SCP");
     /// </code>
@@ -54,7 +57,12 @@ namespace Dicom.Network
         {
             File = file;
             Dataset = file.Dataset;
-            SOPInstanceUID = File.Dataset.GetSingleValue<DicomUID>(DicomTag.SOPInstanceUID);
+
+            // for potentially invalid UID values, we have to disable validation
+            using (var unvalidated = new UnvalidatedScope(Command))
+            {
+                SOPInstanceUID = File.Dataset.GetSingleValue<DicomUID>(DicomTag.SOPInstanceUID);
+            }
         }
 
         /// <summary>
@@ -88,10 +96,20 @@ namespace Dicom.Network
 
         /// <summary>
         /// Additional transfer syntaxes to propose in the association request.
-        /// 
+        ///
         /// DICOM dataset will be transcoded on the fly if necessary.
         /// </summary>
         public DicomTransferSyntax[] AdditionalTransferSyntaxes { get; set; }
+
+        /// <summary>
+        /// Gets or sets the (optional) Common Extended Negotiation Service Class UID.
+        /// </summary>
+        public DicomUID CommonServiceClassUid { get; set; }
+
+        /// <summary>
+        /// Gets or sets the (optional) Common Extended Negotiation Related General SOP Class Identification
+        /// </summary>
+        public List<DicomUID> RelatedGeneralSopClasses { get; set; }
 
         /// <summary>
         /// Represents a callback method to be executed when the response for the DICOM C-Store request is received.
@@ -119,6 +137,5 @@ namespace Dicom.Network
                 // ignore exceptions
             }
         }
-
     }
 }

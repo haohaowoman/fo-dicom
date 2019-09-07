@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System.IO;
@@ -72,6 +72,22 @@ namespace Dicom.IO.Reader
 
             // verify that the pixel data are not loaded from stream
             Assert.False(dcm.Dataset.Contains(DicomTag.PixelData));
+        }
+
+        [Fact]
+        public void ReadingSkipLargeTags_GH893()
+        {
+            DicomFile dcm = null;
+            string filename = @".\Test Data\genFile.dcm";
+            if (File.Exists(filename))
+            {
+                byte[] buff = File.ReadAllBytes(filename);
+                using (MemoryStream stream = new MemoryStream(buff))
+                {
+                    dcm = DicomFile.Open(stream, FileReadOption.SkipLargeTags);
+                }
+            }
+            Assert.NotNull(dcm);
         }
 
 

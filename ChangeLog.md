@@ -1,4 +1,54 @@
-#### v.4.0.1 (TBD)
+#### v.4.0.3 (TBD)
+* Bug fix: Exception when opening a file with FileReadOption.SkipLargeTags (#893)
+* Bug fix: Do not open new associations on the existing TCP connection (#896)
+* New feature: Add the ability to enforce a maximum number of DICOM requests per association to the new DICOM client (#898)
+* Add AutoValidate property also to DicomDirectory class.
+* Add support for timeout detection on DICOM requests. Events on Requests and DicomClient are thrown in case of timeout (#666, #236)
+* New Option MaxPDULength in DicomServiceOption.
+* Rewrite SOP class extended negotiation support (#740)
+* Bub fix: extended negotiations have been accepted by default, but should be explicitly accepted (#900)
+* Global static property DicomValidation.PerformValidation to turn off validation for every DicomDataset. 
+
+#### v.4.0.2 (7/30/2019)
+* Bug fix: prevent resource leak when DesktopNetworkListener waits for new TCP clients
+* Updated to DICOM Dictionary 2019a (#724)
+* Add pure managed JpegLosses Decoder to DICOM.NetCore project
+* Upgraded native libraries to MSVC platform toolset v141 (VS 2017) (#814)
+* Replaced deprecated licenseUrl tags in NuGet specification files (#813)
+* Add validation of content when adding DICOM elements to DicomDataset. This validation is skipped when reading files or receiving data via network.
+* Be more prudent when releasing association after the linger timeout (#840)
+* A completely new DicomClient, under the namespace Dicom.Network.Client.DicomClient (beware of confusion with Dicom.Network.DicomClient!)
+  * The intent is that the old Dicom.Network.DicomClient will disappear in the next major update, so the namespace confusion shouldn't last very long.
+  * For now, both versions can be used side by side according to your needs. All of our unit tests cover both implementations. 
+  * The new Dicom.Network.Client.DicomClient sports the following characteristics:
+    * Redesigned architecture using state pattern. This makes the DicomClient a lot more robust in various scenarios (abort while sending requests, disconnect while releasing association, etc)
+    * Completely async from the very start
+    * Full and graceful cancellation support using CancellationToken. Upon cancellation, no more requests will be sent, the association will be released and the connection closed gracefully.
+    * One DicomClient instance per DICOM server. The host, port and other server related parameters are moved to the DicomClient constructor.
+    * More hooks to react to the various states a DicomClient goes through. (e.g. when connecting, when lingering the association, etc.)
+* Bug Fix: Fixed wrong interpretation and application of LUT for PALETTE COLOR images (#817)
+* Bug Fix: Allow any SOP Class to be set as Affected SOP CLass in C-FIND requests (#808)
+* Bug Fix: Don't drop connection right after releasing an association (#839)
+* Bug Fix: Wait for release of previous association before opening a new one  (#833)
+* Bug Fix: When a connection is still open but the association is already released, create a new association (#833)
+* Bug Fix: When adding datasets to a DicomDirectory where some patientNames have trailing ^, then they were not recognized as one patient (#765)
+* Bug Fix: Anonymizer throws exception on private tags (#771)
+* Bug Fix: Linear windowing wrong in corner cases (#816)
+* Bug Fix: Fix DicomClient getting stuck when sending one request fails completely (#848)
+* Added Modality LUT Sequence and VOI LUT Sequence functionality when generating a DICOM Image.
+* Bug Fix: Logging requests with very long private tags throws exception (#846)
+* Bug Fix: turn off validation when creating CFind-, CGet- or CMove-Requests, since there are no newly generated data included, but already existing UIDs have to be added there. (#860, #842)
+* Bug Fix: generation of DicomUID using obsolete method Generate("name") resulted in invalid UIDs. (#862)
+* Bug Fix: Disabling dataset validation for file meta information objects. (#859)
+* Bug Fix: JPEG 2000 decodes wrong colors in .NET Core (#850)
+* Enable secure DICOM Tls 1.0, 1.1 and 1.2 (#872)
+* Set text encoding of Json to UTF-8, as defined in dicom standard F.2
+* Bug Fix: Photometric Interpretation updates on Transfer Syntax changes (#836)
+* Bug Fix: DicomOverlayData OriginX and OriginY were swapped
+* Bug Fix: Handle Json deserializing of empty values (#873)
+
+#### v.4.0.1 (3/13/2019)
+* change IFileReference and IByteBuffer to have offset of type long so that big files can be processed (#743)
 * internally identify dicom servers by port/ipadress combination instead of only port (#699)
 * DicomDirectory.AddFile returns a reference to the newly added patient-, study-, series- and instance-Record.
 * Update Json DS validation regex (#643)
@@ -14,7 +64,18 @@
 * add DicomUID.IsVolumeStorage.
 * Bug Fix : DICOM server may throw DicomDataException on association when non-standard transfer syntax was proposed (#749)
 * allow Query/Register/Unregister transfer syntax.
+* DicomCFindRequest should allow defnition of Query Retrieve Information Model (#708)
+* Bug fix : DicomUIDGenerator.GenerateDerivedFromUUID converts Guids incorrectly to the DICOM "2.25." + UUID format (#762)
 * Bug Fix : TryGetValue, TryGetValues, TryGetSingleValue should return false instead of throw exception. (#746)
+* Add methods to calculate localizer lines (#779)
+* Bug Fix : DicomPixelData.Create throws Exception if BitsAllocated >= 32 (#716)
+* Bug Fix: GetValues<object> on empty element may throw ArgumentOutOfRangeException (#720)
+* Serilog for .NET Standard 1.3/.NET Core (#772)
+* Bug Fix : DicomServer does not close TcpClient/socket after client closed connection (#795)
+* Bug Fix : JsonDicomConverter should decode BulkDataURI element(#796)
+* Bug Fix: fix deserialization of Json when the VR-property is not on first position (#730) 
+* DicomClient uses StrongBox to reduce memory consumption (#794)
+* Bug Fix: C-STORE request may hang. (#792)
 
 #### v.4.0.0 (9/24/2018)
 * Demonstrate and fix error in RLELossless Transfer Syntax Codec

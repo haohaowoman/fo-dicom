@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -562,14 +562,14 @@ namespace Dicom
 
         ///<summary>RFC 2557 MIME encapsulation</summary>
         public static readonly DicomTransferSyntax RFC2557MIMEEncapsulation =
-            new DicomTransferSyntax(DicomUID.RFC2557MIMEEncapsulation)
+            new DicomTransferSyntax(DicomUID.RFC2557MIMEEncapsulationRETIRED)
             {
                 IsExplicitVR = true,
                 Endian = Endian.Little
             };
 
         ///<summary>XML Encoding</summary>
-        public static readonly DicomTransferSyntax XMLEncoding = new DicomTransferSyntax(DicomUID.XMLEncoding)
+        public static readonly DicomTransferSyntax XMLEncoding = new DicomTransferSyntax(DicomUID.XMLEncodingRETIRED)
         {
             IsExplicitVR = true,
             Endian = Endian.Little

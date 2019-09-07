@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -59,8 +59,18 @@ namespace Dicom
         /// </summary>
         /// <param name="items">A collection of DICOM items.</param>
         public DicomDataset(IEnumerable<DicomItem> items)
+            : this(items, true)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DicomDataset"/> class.
+        /// </summary>
+        /// <param name="items">A collection of DICOM items.</param>
+        internal DicomDataset(IEnumerable<DicomItem> items, bool validate)
             : this()
         {
+            ValidateItems = validate;
             if (items != null)
             {
                 foreach (var item in items.Where(item => item != null))
@@ -71,16 +81,18 @@ namespace Dicom
                         if (tag.IsPrivate) tag = GetPrivateTag(tag);
                         var sequenceItems =
                             ((DicomSequence)item).Items.Where(dataset => dataset != null)
-                                .Select(dataset => new DicomDataset(dataset))
+                                .Select(dataset => new DicomDataset(dataset, validate))
                                 .ToArray();
                         _items[tag] = new DicomSequence(tag, sequenceItems);
                     }
                     else
                     {
+                        if (ValidateItems) item.Validate();
                         _items[item.Tag.IsPrivate ? GetPrivateTag(item.Tag) : item.Tag] = item;
                     }
                 }
             }
+            ValidateItems = true;
         }
 
         #endregion
@@ -104,6 +116,24 @@ namespace Dicom
                     }
                 }
             }
+        }
+
+
+        internal bool _validateItems = true;
+        internal bool ValidateItems
+        {
+            get => _validateItems && DicomValidation.PerformValidation;
+            set => _validateItems = value;
+        }
+
+        /// <summary>
+        /// Gets or sets if the content of DicomItems shall be validated as soon as they are added to the DicomDataset
+        /// </summary>
+        [Obsolete("Use this property with care. You can suppress validation, but be aware you might create invalid Datasets if you need to set this property.", false)]
+        public bool AutoValidate
+        {
+            get => _validateItems;
+            set => ValidateItems = value;
         }
 
         #endregion
@@ -268,7 +298,6 @@ namespace Dicom
             }
             else
             {
-                //TODO: check if this is the correct. 
                 //Are there any other cases where this method can be called for non DicomElement types?
                 throw new DicomDataException("DicomTag doesn't support values.");
             }
@@ -637,6 +666,19 @@ namespace Dicom
 
 
         #region METHODS
+
+        /// <summary>
+        /// Performs a validation of all DICOM items that are contained in this DicomDataset. This explicit call for validation ignores the
+        /// gobal DicomValidation.AutoValidate and DicomDataset.AutoValidate property.
+        /// </summary>
+        /// <exception cref="DicomValidationException">A exception is thrown if one of the items does not pass the valiation</exception>
+        public void Validate()
+        {
+            foreach(var item in this)
+            {
+                item.Validate();
+            }
+        }
 
         /// <summary>
         /// Gets the item or element value of the specified <paramref name="tag"/>.
@@ -1146,6 +1188,7 @@ namespace Dicom
                             item.Tag = tag;
                         }
 
+                        if (ValidateItems) item.Validate();
                         _items[tag] = item;
                     }
                 }
@@ -1160,6 +1203,7 @@ namespace Dicom
                             item.Tag = tag;
                         }
 
+                        if (ValidateItems) item.Validate();
                         _items.Add(tag, item);
                     }
                 }
@@ -1183,6 +1227,7 @@ namespace Dicom
                     tag = GetPrivateTag(tag);
                     item.Tag = tag;
                 }
+                if (ValidateItems) item.Validate();
 
                 if (allowUpdate)
                 {
@@ -1263,7 +1308,7 @@ namespace Dicom
             {
                 if (values == null) return DoAdd(new DicomCodeString(tag, EmptyBuffer.Value), allowUpdate);
                 if (typeof(T) == typeof(string)) return DoAdd(new DicomCodeString(tag, values.Cast<string>().ToArray()), allowUpdate);
-                if (typeof(T).GetTypeInfo().IsEnum) return DoAdd(new DicomCodeString(tag, values.Select(x => x.ToString()).ToArray()), allowUpdate);
+                if (typeof(T).GetTypeInfo().IsEnum) return DoAdd(new DicomCodeString(tag, values.Select(x => x.ToString().ToUpperInvariant()).ToArray()), allowUpdate);
             }
 
             if (vr == DicomVR.DA)
@@ -1279,6 +1324,8 @@ namespace Dicom
             if (vr == DicomVR.DS)
             {
                 if (values == null) return DoAdd(new DicomDecimalString(tag, EmptyBuffer.Value), allowUpdate);
+                if (typeof(T) == typeof(float)) return DoAdd(new DicomDecimalString(tag, values.Cast<float>().Select(Convert.ToDecimal).ToArray()), allowUpdate);
+                if (typeof(T) == typeof(double)) return DoAdd(new DicomDecimalString(tag, values.Cast<double>().Select(Convert.ToDecimal).ToArray()), allowUpdate);
                 if (typeof(T) == typeof(decimal)) return DoAdd(new DicomDecimalString(tag, values.Cast<decimal>().ToArray()), allowUpdate);
                 if (typeof(T) == typeof(string)) return DoAdd(new DicomDecimalString(tag, values.Cast<string>().ToArray()), allowUpdate);
             }
@@ -1299,6 +1346,7 @@ namespace Dicom
             if (vr == DicomVR.FD)
             {
                 if (values == null) return DoAdd(new DicomFloatingPointDouble(tag, EmptyBuffer.Value), allowUpdate);
+                if (typeof(T) == typeof(float)) return DoAdd(new DicomFloatingPointDouble(tag, values.Cast<float>().Select(Convert.ToDouble).ToArray()), allowUpdate);
                 if (typeof(T) == typeof(double)) return DoAdd(new DicomFloatingPointDouble(tag, values.Cast<double>().ToArray()), allowUpdate);
 
                 if (ParseVrValueFromString(values, tag.DictionaryEntry.ValueMultiplicity, double.Parse, out IEnumerable<double> parsedValues))
@@ -1311,6 +1359,7 @@ namespace Dicom
             {
                 if (values == null) return DoAdd(new DicomFloatingPointSingle(tag, EmptyBuffer.Value), allowUpdate);
                 if (typeof(T) == typeof(float)) return DoAdd(new DicomFloatingPointSingle(tag, values.Cast<float>().ToArray()), allowUpdate);
+                if (typeof(T) == typeof(double)) return DoAdd(new DicomFloatingPointSingle(tag, values.Cast<double>().Select(Convert.ToSingle).ToArray()), allowUpdate);
 
                 if (ParseVrValueFromString(values, tag.DictionaryEntry.ValueMultiplicity, float.Parse, out IEnumerable<float> parsedValues))
                 {
@@ -1540,4 +1589,45 @@ namespace Dicom
 
         #endregion
     }
+
+
+    public class UnvalidatedScope : IDisposable
+    {
+        private DicomDataset _dataset;
+        private readonly bool _validation;
+
+        public UnvalidatedScope(DicomDataset dataSet)
+        {
+            _dataset = dataSet;
+            _validation = dataSet.ValidateItems;
+            _dataset.ValidateItems = false;
+        }
+
+        #region IDisposable Support
+
+        private bool disposedValue = false; // for detecting renundant calling of Dispose
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    _dataset.ValidateItems = _validation;
+                    _dataset = null;
+                }
+
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+        }
+
+        #endregion
+
+    }
+
 }

@@ -1,8 +1,9 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System.Collections.Generic;
 using System.Threading;
+using Dicom.Network.Client;
 
 using Xunit;
 
@@ -46,6 +47,7 @@ namespace Dicom.Network
 
             Assert.Equal("RT ANKLE", dataset.Get<string>(DicomTag.StudyDescription));
         }
+
 
         [Fact(Skip = "Require running Q/R SCP containing specific study")]
         public void DicomCGetRequest_PickCTImagesInStudy_OnlyCTImagesRetrieved()
@@ -99,11 +101,64 @@ namespace Dicom.Network
             Assert.Equal(expected, actual);
         }
 
+        [Fact]
+        public void CreateQueryWithInvalidUID()
+        {
+            var invalidStudyUID = "1.2.0004";
+            var e = Record.Exception(() =>
+            {
+                var request = new DicomCGetRequest(invalidStudyUID, DicomPriority.Medium);
+                Assert.Equal(invalidStudyUID, request.Dataset.GetSingleValue<string>(DicomTag.StudyInstanceUID));
+            });
+            Assert.Null(e);
+        }
+
+        [Fact]
+        public void AddInvalidUIDToQuery()
+        {
+            var invalidStudyUID = "1.2.0004";
+            var e = Record.Exception(() =>
+            {
+                var request = new DicomCGetRequest(invalidStudyUID, DicomPriority.Medium);
+                request.Dataset.AddOrUpdate(DicomTag.SeriesInstanceUID, invalidStudyUID);
+                Assert.Equal(invalidStudyUID, request.Dataset.GetSingleValue<string>(DicomTag.SeriesInstanceUID));
+            });
+            Assert.Null(e);
+        }
+
+        [Fact]
+        public void AddSeveralUIDsToQuery()
+        {
+            var e = Record.Exception(() =>
+            {
+                var request = new DicomCGetRequest("1.2.3.456");
+                request.Dataset.Add(DicomTag.SeriesInstanceUID, "1.2.3\\3.4.5");
+                Assert.Equal(2, request.Dataset.GetValueCount(DicomTag.SeriesInstanceUID));
+            });
+            Assert.Null(e);
+
+            e = Record.Exception(() =>
+            {
+                var request = new DicomCGetRequest("1.2.3.456");
+                request.Dataset.Add(DicomTag.SeriesInstanceUID, "1.2.3", "2.3.4");
+                Assert.Equal(2, request.Dataset.GetValueCount(DicomTag.SeriesInstanceUID));
+            });
+            Assert.Null(e);
+
+            e = Record.Exception(() =>
+            {
+                var request = new DicomCGetRequest("1.2.3.456");
+                request.Dataset.Add(new DicomUniqueIdentifier(DicomTag.SeriesInstanceUID, "1.2.3", "3.4.5"));
+                Assert.Equal(2, request.Dataset.GetValueCount(DicomTag.SeriesInstanceUID));
+            });
+            Assert.Null(e);
+        }
+
         #endregion
 
         #region Support Data
 
-        public static readonly IEnumerable<object[]> InstancesLevels = new[] 
+        public static readonly IEnumerable<object[]> InstancesLevels = new[]
         {
             new object[] { new DicomCGetRequest("1.2.3"), DicomQueryRetrieveLevel.Study },
             new object[] { new DicomCGetRequest("1.2.3", "2.3.4"), DicomQueryRetrieveLevel.Series },

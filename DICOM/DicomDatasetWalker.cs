@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 namespace Dicom
@@ -116,13 +116,7 @@ namespace Dicom
 
             public DicomDataset Dataset { get; private set; }
 
-            public override DicomVR ValueRepresentation
-            {
-                get
-                {
-                    return DicomVR.NONE;
-                }
-            }
+            public override DicomVR ValueRepresentation => DicomVR.NONE;
         }
 
         private class EndDicomSequenceItem : DicomItem
@@ -132,13 +126,7 @@ namespace Dicom
             {
             }
 
-            public override DicomVR ValueRepresentation
-            {
-                get
-                {
-                    return DicomVR.NONE;
-                }
-            }
+            public override DicomVR ValueRepresentation => DicomVR.NONE;
         }
 
         private class EndDicomSequence : DicomItem
@@ -148,13 +136,7 @@ namespace Dicom
             {
             }
 
-            public override DicomVR ValueRepresentation
-            {
-                get
-                {
-                    return DicomVR.NONE;
-                }
-            }
+            public override DicomVR ValueRepresentation => DicomVR.NONE;
         }
 
         private class DicomFragmentItem : DicomItem
@@ -167,13 +149,7 @@ namespace Dicom
 
             public IByteBuffer Buffer { get; private set; }
 
-            public override DicomVR ValueRepresentation
-            {
-                get
-                {
-                    return DicomVR.NONE;
-                }
-            }
+            public override DicomVR ValueRepresentation => DicomVR.NONE;
         }
 
         private class EndDicomFragment : DicomItem
@@ -183,13 +159,7 @@ namespace Dicom
             {
             }
 
-            public override DicomVR ValueRepresentation
-            {
-                get
-                {
-                    return DicomVR.NONE;
-                }
-            }
+            public override DicomVR ValueRepresentation => DicomVR.NONE;
         }
 
         #endregion

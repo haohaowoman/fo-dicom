@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 #if !NET35
@@ -251,7 +251,7 @@ namespace Dicom.Network
                             scp.Options = Options;
                         }
 
-                        _services.Add(scp.RunAsync());
+                        _services.Add(scp.RunAsync().ContinueWith(_ => scp.Dispose()));
 
                         _hasServicesFlag.Set();
                         if (IsServicesAtMax) _hasNonMaxServicesFlag.Reset();

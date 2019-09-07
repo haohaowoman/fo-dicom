@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using Dicom.Imaging.LUT;
@@ -19,7 +19,7 @@ namespace Dicom.Imaging.Render
         public PaletteColorPipeline(DicomPixelData pixelData)
         {
             var lut = pixelData.PaletteColorLUT;
-            var first = pixelData.Dataset.GetSingleValueOrDefault(DicomTag.RedPaletteColorLookupTableDescriptor, 1);
+            var first = pixelData.Dataset.GetValue<int>(DicomTag.RedPaletteColorLookupTableDescriptor, 1);
 
             LUT = new PaletteColorLUT(first, lut);
         }

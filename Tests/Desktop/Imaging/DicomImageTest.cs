@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2018 fo-dicom contributors.
+﻿// Copyright (c) 2012-2019 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System.Drawing;
@@ -86,6 +86,22 @@ namespace Dicom.Imaging
                 var image = file.RenderImage(0);
                 Assert.IsAssignableFrom<Bitmap>(image.As<Bitmap>());
             }
+        }
+
+        [Theory]
+        [InlineData("TestPattern_Palette.dcm")]
+        [InlineData("TestPattern_Palette_16.dcm")]
+        [InlineData("TestPattern_RGB.dcm")]
+        public void RenderImage_ColorPaletteWithOffset(string filename)
+        {
+            lock (_lock)
+            {
+                ImageManager.SetImplementation(WinFormsImageManager.Instance);
+                var file = new DicomImage(@".\Test Data\" + filename);
+                var image = file.RenderImage(0);
+                Assert.IsAssignableFrom<Bitmap>(image.As<Bitmap>());
+            }
+
         }
 
 
