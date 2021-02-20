@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 namespace Dicom
@@ -17,7 +17,11 @@ namespace Dicom
         {
             var df = new DicomFile();
             df.FileMetaInfo.Add(original.FileMetaInfo);
+
+            df.Dataset.ValidateItems = false;
             df.Dataset.Add(original.Dataset);
+            df.Dataset.ValidateItems = original.Dataset.ValidateItems;
+
             df.Dataset.InternalTransferSyntax = original.Dataset.InternalTransferSyntax;
             return df;
         }

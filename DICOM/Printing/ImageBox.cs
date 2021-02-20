@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 namespace Dicom.Printing
@@ -24,12 +24,12 @@ namespace Dicom.Printing
         /// <summary>
         /// Basic color image box SOP
         /// </summary>
-        public static readonly DicomUID ColorSOPClassUID = DicomUID.BasicColorImageBoxSOPClass;
+        public static readonly DicomUID ColorSOPClassUID = DicomUID.BasicColorImageBox;
 
         /// <summary>
         /// Basic gray scale image box SOP
         /// </summary>
-        public static readonly DicomUID GraySOPClassUID = DicomUID.BasicGrayscaleImageBoxSOPClass;
+        public static readonly DicomUID GraySOPClassUID = DicomUID.BasicGrayscaleImageBox;
 
         /// <summary>
         /// Image box SOP class UID

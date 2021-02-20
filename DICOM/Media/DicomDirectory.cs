@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 namespace Dicom.Media
@@ -522,11 +522,28 @@ namespace Dicom.Media
                     break;
                 }
             }
-            var newImage = CreateRecordSequenceItem(DicomDirectoryRecordType.Image, dataset);
+
+            DicomDirectoryRecord newImage;
+            if (metaFileInfo.MediaStorageSOPClassUID.StorageCategory == DicomStorageCategory.StructuredReport)
+            {
+                newImage = CreateRecordSequenceItem(DicomDirectoryRecordType.Report, dataset);
+            }
+            else if (metaFileInfo.MediaStorageSOPClassUID.StorageCategory == DicomStorageCategory.PresentationState)
+            {
+                newImage = CreateRecordSequenceItem(DicomDirectoryRecordType.PresentationState, dataset);
+            }
+            else
+            {
+                newImage = CreateRecordSequenceItem(DicomDirectoryRecordType.Image, dataset);
+            }
+
             newImage.AddOrUpdate(DicomTag.ReferencedFileID, referencedFileId);
-            newImage.AddOrUpdate(DicomTag.ReferencedSOPClassUIDInFile, metaFileInfo.MediaStorageSOPClassUID.UID);
-            newImage.AddOrUpdate(DicomTag.ReferencedSOPInstanceUIDInFile, metaFileInfo.MediaStorageSOPInstanceUID.UID);
-            newImage.AddOrUpdate(DicomTag.ReferencedTransferSyntaxUIDInFile, metaFileInfo.TransferSyntax.UID);
+            using (var unvalidated = new UnvalidatedScope(newImage))
+            {
+                newImage.AddOrUpdate(DicomTag.ReferencedSOPClassUIDInFile, metaFileInfo.MediaStorageSOPClassUID.UID);
+                newImage.AddOrUpdate(DicomTag.ReferencedSOPInstanceUIDInFile, metaFileInfo.MediaStorageSOPInstanceUID.UID);
+                newImage.AddOrUpdate(DicomTag.ReferencedTransferSyntaxUIDInFile, metaFileInfo.TransferSyntax.UID);
+            }
 
             if (currentImage != null)
             {
@@ -676,15 +693,18 @@ namespace Dicom.Media
                 dataset.FirstOrDefault(d => d.Tag == DicomTag.SpecificCharacterSet)
             };
 
-            foreach (var tag in recordType.Tags)
+            using (var unvalidated = new UnvalidatedScope(sequenceItem))
             {
-                if (dataset.Contains(tag))
+                foreach (var tag in recordType.Tags)
                 {
-                    sequenceItem.Add(dataset.GetDicomItem<DicomItem>(tag));
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"Cannot find tag {tag} for record type {recordType}");
+                    if (dataset.Contains(tag))
+                    {
+                        sequenceItem.Add(dataset.GetDicomItem<DicomItem>(tag));
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Cannot find tag {tag} for record type {recordType}");
+                    }
                 }
             }
 

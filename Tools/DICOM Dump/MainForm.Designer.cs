@@ -28,6 +28,7 @@
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuItemSave = new System.Windows.Forms.ToolStripMenuItem();
+            this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuItemTools = new System.Windows.Forms.ToolStripMenuItem();
             this.menuItemView = new System.Windows.Forms.ToolStripMenuItem();
             this.menuItemSyntax = new System.Windows.Forms.ToolStripMenuItem();
@@ -69,7 +70,6 @@
             this.cmDicom = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.copyValueToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.copyTagToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.cmDicom.SuspendLayout();
             this.SuspendLayout();
@@ -98,7 +98,7 @@
             // openToolStripMenuItem
             // 
             this.openToolStripMenuItem.Name = "openToolStripMenuItem";
-            this.openToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.openToolStripMenuItem.Size = new System.Drawing.Size(103, 22);
             this.openToolStripMenuItem.Text = "&Open";
             this.openToolStripMenuItem.Click += new System.EventHandler(this.OnClickOpen);
             // 
@@ -106,9 +106,16 @@
             // 
             this.menuItemSave.Enabled = false;
             this.menuItemSave.Name = "menuItemSave";
-            this.menuItemSave.Size = new System.Drawing.Size(152, 22);
+            this.menuItemSave.Size = new System.Drawing.Size(103, 22);
             this.menuItemSave.Text = "&Save";
             this.menuItemSave.Click += new System.EventHandler(this.OnClickSave);
+            // 
+            // exitToolStripMenuItem
+            // 
+            this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(103, 22);
+            this.exitToolStripMenuItem.Text = "E&xit";
+            this.exitToolStripMenuItem.Click += new System.EventHandler(this.OnClickExit);
             // 
             // menuItemTools
             // 
@@ -118,14 +125,14 @@
             this.menuItemAnonymize,
             this.exportPixelDataToolStripMenuItem});
             this.menuItemTools.Name = "menuItemTools";
-            this.menuItemTools.Size = new System.Drawing.Size(47, 20);
+            this.menuItemTools.Size = new System.Drawing.Size(46, 20);
             this.menuItemTools.Text = "&Tools";
             // 
             // menuItemView
             // 
             this.menuItemView.Enabled = false;
             this.menuItemView.Name = "menuItemView";
-            this.menuItemView.Size = new System.Drawing.Size(161, 22);
+            this.menuItemView.Size = new System.Drawing.Size(180, 22);
             this.menuItemView.Text = "&View";
             this.menuItemView.Click += new System.EventHandler(this.OnClickView);
             // 
@@ -145,7 +152,7 @@
             this.rLELosslessToolStripMenuItem});
             this.menuItemSyntax.Enabled = false;
             this.menuItemSyntax.Name = "menuItemSyntax";
-            this.menuItemSyntax.Size = new System.Drawing.Size(161, 22);
+            this.menuItemSyntax.Size = new System.Drawing.Size(180, 22);
             this.menuItemSyntax.Text = "&Change Syntax";
             // 
             // explicitVRLittleEndianToolStripMenuItem
@@ -365,14 +372,14 @@
             // 
             this.menuItemAnonymize.Enabled = false;
             this.menuItemAnonymize.Name = "menuItemAnonymize";
-            this.menuItemAnonymize.Size = new System.Drawing.Size(161, 22);
+            this.menuItemAnonymize.Size = new System.Drawing.Size(180, 22);
             this.menuItemAnonymize.Text = "&Anonymize";
             this.menuItemAnonymize.Click += new System.EventHandler(this.OnClickAnonymize);
             // 
             // exportPixelDataToolStripMenuItem
             // 
             this.exportPixelDataToolStripMenuItem.Name = "exportPixelDataToolStripMenuItem";
-            this.exportPixelDataToolStripMenuItem.Size = new System.Drawing.Size(161, 22);
+            this.exportPixelDataToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.exportPixelDataToolStripMenuItem.Text = "Export Pixel Data";
             this.exportPixelDataToolStripMenuItem.Click += new System.EventHandler(this.OnClickExportPixelData);
             // 
@@ -386,6 +393,7 @@
             this.lvDicom.ContextMenuStrip = this.cmDicom;
             this.lvDicom.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lvDicom.FullRowSelect = true;
+            this.lvDicom.HideSelection = false;
             this.lvDicom.Location = new System.Drawing.Point(0, 24);
             this.lvDicom.MultiSelect = false;
             this.lvDicom.Name = "lvDicom";
@@ -435,13 +443,6 @@
             this.copyTagToolStripMenuItem.Size = new System.Drawing.Size(133, 22);
             this.copyTagToolStripMenuItem.Text = "Copy &Tag";
             this.copyTagToolStripMenuItem.Click += new System.EventHandler(this.OnClickContextMenuCopyTag);
-            // 
-            // exitToolStripMenuItem
-            // 
-            this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
-            this.exitToolStripMenuItem.Text = "E&xit";
-            this.exitToolStripMenuItem.Click += new System.EventHandler(this.OnClickExit);
             // 
             // MainForm
             // 

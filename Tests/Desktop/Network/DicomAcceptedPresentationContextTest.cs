@@ -1,4 +1,7 @@
-﻿using Dicom.Log;
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
+// Licensed under the Microsoft Public License (MS-PL).
+
+using Dicom.Log;
 using Dicom.Printing;
 using System;
 using System.Collections.Generic;
@@ -28,7 +31,7 @@ namespace Dicom.Network
                 DicomStatus storeStatus = DicomStatus.Pending;
                 storeReq.OnResponseReceived += (req, resp) => storeStatus = resp.Status;
 
-                var filmSession = new FilmSession(DicomUID.BasicFilmSessionSOPClass, DicomUID.Generate());
+                var filmSession = new FilmSession(DicomUID.BasicFilmSession, DicomUID.Generate());
                 var printReq = new DicomNCreateRequest(filmSession.SOPClassUID, filmSession.SOPInstanceUID);
                 DicomStatus printStatus = DicomStatus.Pending;
                 printReq.OnResponseReceived += (req, resp) => printStatus = resp.Status;
@@ -58,7 +61,7 @@ namespace Dicom.Network
                 DicomStatus storeStatus = DicomStatus.Pending;
                 storeReq.OnResponseReceived += (req, resp) => storeStatus = resp.Status;
 
-                var filmSession = new FilmSession(DicomUID.BasicFilmSessionSOPClass, DicomUID.Generate());
+                var filmSession = new FilmSession(DicomUID.BasicFilmSession, DicomUID.Generate());
                 var printReq = new DicomNCreateRequest(filmSession.SOPClassUID, filmSession.SOPInstanceUID);
                 DicomStatus printStatus = DicomStatus.Pending;
                 printReq.OnResponseReceived += (req, resp) => printStatus = resp.Status;
@@ -88,7 +91,7 @@ namespace Dicom.Network
                 DicomStatus storeStatus = DicomStatus.Pending;
                 storeReq.OnResponseReceived += (req, resp) => storeStatus = resp.Status;
 
-                var filmSession = new FilmSession(DicomUID.BasicFilmSessionSOPClass, DicomUID.Generate());
+                var filmSession = new FilmSession(DicomUID.BasicFilmSession, DicomUID.Generate());
                 var printReq = new DicomNCreateRequest(filmSession.SOPClassUID, filmSession.SOPInstanceUID);
                 DicomStatus printStatus = DicomStatus.Pending;
                 printReq.OnResponseReceived += (req, resp) => printStatus = resp.Status;
@@ -120,7 +123,7 @@ namespace Dicom.Network
     {
         public AcceptOnlyEchoPrintManagementProvider(INetworkStream stream, Encoding fallbackEncoding, Logger log) : base(stream, fallbackEncoding, log)
         {
-            AcceptedSopClasses.AddRange(new[] { DicomUID.Verification, DicomUID.BasicGrayscalePrintManagementMetaSOPClass });
+            AcceptedSopClasses.AddRange(new[] { DicomUID.Verification, DicomUID.BasicGrayscalePrintManagementMeta });
         }
     }
 
@@ -190,10 +193,7 @@ namespace Dicom.Network
 
         public DicomNActionResponse OnNActionRequest(DicomNActionRequest request)
         {
-            return new DicomNActionResponse(request, DicomStatus.Success)
-            {
-                Dataset = request.Dataset
-            };
+            return new DicomNActionResponse(request, DicomStatus.Success);
         }
 
         public DicomNCreateResponse OnNCreateRequest(DicomNCreateRequest request)
@@ -242,6 +242,9 @@ namespace Dicom.Network
             {
                 Dataset = request.Dataset
             };
+        }
+        public void OnSendNEventReportRequest(DicomNActionRequest request)
+        {
         }
     }
 

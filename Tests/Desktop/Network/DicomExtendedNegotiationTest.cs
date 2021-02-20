@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -39,7 +39,7 @@ namespace Dicom.Network
         [MemberData(nameof(OrderOfBytesTestData))]
         public void Constructor_WhenApplicationInfoIsSet_OrderOfBytesIsAsExpected(DicomServiceApplicationInfo appInfo, byte[] expectedByteOrder)
         {
-            var sopClass = DicomUID.PatientRootQueryRetrieveInformationModelFIND;
+            var sopClass = DicomUID.PatientRootQueryRetrieveInformationModelFind;
             var negotiation = new DicomExtendedNegotiation(sopClass, appInfo);
 
             Assert.Equal(expectedByteOrder, negotiation.RequestedApplicationInfo.GetValues());
@@ -52,7 +52,7 @@ namespace Dicom.Network
         [Fact]
         public void Constructor_WithCreatedApplicationInfo_ApplicationInfoTypeIsAsExpected()
         {
-            var sopClass = DicomUID.PatientRootQueryRetrieveInformationModelFIND;
+            var sopClass = DicomUID.PatientRootQueryRetrieveInformationModelFind;
             var appInfoType = typeof(DicomCFindApplicationInfo);
 
             var appInfo = DicomServiceApplicationInfo.Create(sopClass, new byte[] { 1 });
@@ -65,7 +65,7 @@ namespace Dicom.Network
         [Fact]
         public void Constructor_WithDelegateCreatedApplicationInfo_ApplicationInfoTypeIsAsExpected()
         {
-            var sopClass = DicomUID.BasicAnnotationBoxSOPClass;
+            var sopClass = DicomUID.BasicAnnotationBox;
             var appInfoType = typeof(DicomCFindApplicationInfo);
 
             DicomServiceApplicationInfo.OnCreateApplicationInfo = (sop, info) =>

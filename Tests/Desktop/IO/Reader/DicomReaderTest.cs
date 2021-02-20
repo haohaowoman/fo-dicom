@@ -1,15 +1,14 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
+
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using Dicom.IO.Buffer;
+using Xunit;
 
 namespace Dicom.IO.Reader
 {
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Text;
-
-    using Dicom.IO.Buffer;
-
-    using Xunit;
 
     [Collection("General")]
     public class DicomReaderTest
@@ -46,6 +45,29 @@ namespace Dicom.IO.Reader
 
             Assert.Equal(DicomReaderResult.Success, result);
         }
+
+        [Fact]
+        public void FreezeReadingZeroLengthSequence()
+        {
+            string filename = @".\Test Data\FreezePattern.dcm";
+            var file = DicomFile.Open(filename);
+
+            Assert.NotNull(file);
+        }
+
+
+        [Fact]
+        public void GivenDeflatedDicomFileWithSequence_WhenOpenFile_ThenShouldSucceed()
+        {
+            // This is for regression bug https://github.com/fo-dicom/fo-dicom/issues/1097
+            string filename = @".\Test Data\Issue1097_FailToOpenDeflatedFileWithSQ.dcm";
+
+            // Verify should be able to open file without exception
+            var file = DicomFile.Open(filename);
+
+            Assert.NotNull(file);
+        }
+
 
         #endregion
 

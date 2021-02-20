@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2019 fo-dicom contributors.
+// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -107,7 +107,7 @@ namespace Dicom.Network.Client.States
                 MaxAsyncOpsPerformed = _dicomClient.AsyncPerformed,
                 RemoteHost = _initialisationParameters.Connection.NetworkStream.RemoteHost,
                 RemotePort = _initialisationParameters.Connection.NetworkStream.RemotePort,
-                MaximumPDULength = _dicomClient.Options?.MaxPDULength ?? DicomServiceOptions.Default.MaxPDULength
+                Options = _dicomClient.Options
             };
 
             foreach (var queuedItem in _dicomClient.QueuedRequests.ToList())
@@ -125,7 +125,7 @@ namespace Dicom.Network.Client.States
                     context.ProviderRole,
                     context.GetTransferSyntaxes().ToArray());
             }
-            
+
             foreach (var extendedNegotiation in _dicomClient.AdditionalExtendedNegotiations)
             {
                 associationToRequest.ExtendedNegotiations.AddOrUpdate(
@@ -205,7 +205,7 @@ namespace Dicom.Network.Client.States
                 }
                 else
                 {
-                    return await _dicomClient.TransitionToCompletedWithErrorState(_initialisationParameters, connectionClosedEvent.Exception, cancellation);
+                    return await _dicomClient.TransitionToCompletedWithErrorState(_initialisationParameters, connectionClosedEvent.Exception, cancellation).ConfigureAwait(false);
                 }
             }
 

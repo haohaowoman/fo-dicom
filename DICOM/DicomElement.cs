@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -138,7 +138,7 @@ namespace Dicom
 
         protected override void ValidateString()
         {
-            this.ValueRepresentation?.ValidateString(_value);
+            this.ValueRepresentation?.ValidateString(StringValue);
         }
     }
 
@@ -973,7 +973,7 @@ namespace Dicom
 
             if (_values == null)
             {
-                _values = base.Get<string[]>().Select(x => int.Parse(x, CultureInfo.InvariantCulture)).ToArray();
+                _values = base.Get<string[]>().Select(x => int.Parse(x, NumberStyles.Integer | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture)).ToArray();
             }
 
             if (typeof(T) == typeof(int) || typeof(T) == typeof(object))

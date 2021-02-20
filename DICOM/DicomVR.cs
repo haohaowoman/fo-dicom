@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -270,7 +270,7 @@ namespace Dicom
                                                     Is16bitLength = true,
                                                     IsMultiValue = true,
                                                     PaddingValue = PadSpace,
-                                                    MaximumLength = 8,
+                                                    MaximumLength = 18,
                                                     UnitSize = 1,
                                                     ByteSwap = 1,
                                                     ValueType = typeof(DateTime),
@@ -304,7 +304,7 @@ namespace Dicom
                                                     Is16bitLength = true,
                                                     IsMultiValue = true,
                                                     PaddingValue = PadSpace,
-                                                    MaximumLength = 26,
+                                                    MaximumLength = 54,
                                                     UnitSize = 1,
                                                     ByteSwap = 1,
                                                     ValueType = typeof(DateTime),

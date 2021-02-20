@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -239,7 +239,7 @@ namespace Dicom.Network
             string modality = null,
             DicomDateRange scheduledDateTime = null)
         {
-            var dimse = new DicomCFindRequest(DicomUID.ModalityWorklistInformationModelFIND);
+            var dimse = new DicomCFindRequest(DicomUID.ModalityWorklistInformationModelFind);
             dimse.Dataset.Add(DicomTag.PatientID, patientId);
             dimse.Dataset.Add(DicomTag.PatientName, patientName);
             dimse.Dataset.Add(DicomTag.IssuerOfPatientID, string.Empty);
@@ -305,14 +305,14 @@ namespace Dicom.Network
             switch (level)
             {
                 case DicomQueryRetrieveLevel.Patient:
-                    return DicomUID.PatientRootQueryRetrieveInformationModelFIND;
+                    return DicomUID.PatientRootQueryRetrieveInformationModelFind;
                 case DicomQueryRetrieveLevel.Study:
                 case DicomQueryRetrieveLevel.Series:
                 case DicomQueryRetrieveLevel.Image:
-                    return DicomUID.StudyRootQueryRetrieveInformationModelFIND;
+                    return DicomUID.StudyRootQueryRetrieveInformationModelFind;
                 case DicomQueryRetrieveLevel.Worklist:
                 case DicomQueryRetrieveLevel.NotApplicable:
-                    return DicomUID.ModalityWorklistInformationModelFIND;
+                    return DicomUID.ModalityWorklistInformationModelFind;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(level), level, null);
             }

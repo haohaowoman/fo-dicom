@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using Xunit;
@@ -219,24 +219,48 @@ namespace Dicom
             const string fileName = "GH064.dcm";
 
 #if NETFX_CORE
-            var orignalDicom = Dicom.Helpers.ApplicationContent.OpenDicomFileAsync($"Data/{fileName}").Result;
+            var originalDicom = Dicom.Helpers.ApplicationContent.OpenDicomFileAsync($"Data/{fileName}").Result;
 #else
-            var orignalDicom = DicomFile.Open($"./Test Data/{fileName}");
+            var originalDicom = DicomFile.Open($"./Test Data/{fileName}");
 #endif
 
             var securityProfile = Dicom.DicomAnonymizer.SecurityProfile.LoadProfile(null, Dicom.DicomAnonymizer.SecurityProfileOptions.BasicProfile);
             securityProfile.PatientName = "kökö";
 
             var dicomAnonymizer = new Dicom.DicomAnonymizer(securityProfile);
-            var anonymizedDicom = dicomAnonymizer.Anonymize(orignalDicom);
+            var anonymizedDicom = dicomAnonymizer.Anonymize(originalDicom);
 
             // Ensure that we are using valid input data for test.
             Assert.Equal(Encoding.ASCII, DicomEncoding.Default);
-            Assert.NotEqual(DicomEncoding.GetEncoding(orignalDicom.Dataset.GetString(DicomTag.SpecificCharacterSet)), DicomEncoding.Default);
+            Assert.NotEqual(DicomEncoding.GetEncoding(originalDicom.Dataset.GetString(DicomTag.SpecificCharacterSet)), DicomEncoding.Default);
 
             // Ensure DICOM encoding same as original.
-            Assert.Equal(orignalDicom.Dataset.GetString(DicomTag.SpecificCharacterSet), orignalDicom.Dataset.GetString(DicomTag.SpecificCharacterSet));
+            Assert.Equal(originalDicom.Dataset.GetString(DicomTag.SpecificCharacterSet), anonymizedDicom.Dataset.GetString(DicomTag.SpecificCharacterSet));
             Assert.Equal("kökö", anonymizedDicom.Dataset.GetString(DicomTag.PatientName));
+        }
+
+        [Fact]
+        public void Anonymize_AvoidValidationOnAnonymization()
+        {
+            const string fileName = "GH064.dcm";
+#if NETFX_CORE
+            var originalDicom = Dicom.Helpers.ApplicationContent.OpenDicomFileAsync($"Data/{fileName}").Result;
+#else
+            var originalDicom = DicomFile.Open($"./Test Data/{fileName}");
+#endif
+
+            var ds = new DicomDataset(originalDicom.Dataset).NotValidated();
+            var invalidUid = "1.2.315.6666.008965..19187632.1";
+            ds.AddOrUpdate(DicomTag.StudyInstanceUID, invalidUid);
+            ds = ds.Validated();
+
+            var anonymizer = new DicomAnonymizer();
+            var anonymizedDs = anonymizer.Anonymize(ds);
+            Assert.NotNull(anonymizedDs);
+
+            var df = new DicomFile(ds);
+            var anonymizedDf = anonymizer.Anonymize(df);
+            Assert.NotNull(anonymizedDf);
         }
 
         #endregion

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -493,7 +493,7 @@ namespace Dicom
             {
                 if (typeof(IByteBuffer).GetTypeInfo().IsAssignableFrom(typeof(T).GetTypeInfo())) { return (T)(object)element.Buffer; }
 
-                if (element.Count != 1) { throw new DicomDataException("DICOM element must contains a single value"); }
+                if (element.Count != 1) { throw new DicomDataException("DICOM element must contain a single value"); }
 
                 return element.Get<T>(0);
             }
@@ -608,7 +608,7 @@ namespace Dicom
             {
                 try
                 {
-                    stringValue = element.Get<string>(-1);
+                    stringValue = element.Count == 0 ? string.Empty : element.Get<string>(-1);
                     return true;
                 }
                 catch (DicomDataException)
@@ -766,7 +766,7 @@ namespace Dicom
             if (tag.PrivateCreator == null) return tag;
 
             // already a valid private tag
-            if (tag.Element >= 0xff) return tag;
+            if (tag.Element > 0xff) return tag;
 
             ushort group = 0x0010;
             for (; group <= 0x00ff; group++)
@@ -1039,7 +1039,14 @@ namespace Dicom
         /// <returns>Current Dataset</returns>
         public DicomDataset CopyTo(DicomDataset destination)
         {
-            if (destination != null) destination.AddOrUpdate(this);
+            if (destination != null)
+            {
+                var priorValidation = destination.ValidateItems;
+                destination.ValidateItems = false;
+                destination.AddOrUpdate(this);
+                destination.ValidateItems = priorValidation;
+            }
+
             return this;
         }
 
@@ -1053,7 +1060,13 @@ namespace Dicom
         {
             if (destination != null)
             {
-                foreach (var tag in tags) destination.AddOrUpdate(GetDicomItem<DicomItem>(tag));
+                var priorValidation = destination.ValidateItems;
+                destination.ValidateItems = false;
+                foreach (var tag in tags)
+                {
+                    destination.AddOrUpdate(GetDicomItem<DicomItem>(tag));
+                }
+                destination.ValidateItems = priorValidation;
             }
             return this;
         }
@@ -1066,7 +1079,13 @@ namespace Dicom
         /// <returns>Current Dataset</returns>
         public DicomDataset CopyTo(DicomDataset destination, DicomMaskedTag mask)
         {
-            destination?.AddOrUpdate(_items.Values.Where(x => mask.IsMatch(x.Tag)));
+            if (destination != null)
+            {
+                var priorValidation = destination.ValidateItems;
+                destination.ValidateItems = false;
+                destination.AddOrUpdate(_items.Values.Where(x => mask.IsMatch(x.Tag)));
+                destination.ValidateItems = priorValidation;
+            }
             return this;
         }
 
@@ -1605,7 +1624,7 @@ namespace Dicom
 
         #region IDisposable Support
 
-        private bool disposedValue = false; // for detecting renundant calling of Dispose
+        private bool disposedValue = false; // for detecting redundant calling of Dispose
 
         protected virtual void Dispose(bool disposing)
         {

@@ -1,12 +1,12 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
+
+using System.Collections.Generic;
+using System.Linq;
+using Xunit;
 
 namespace Dicom
 {
-    using System.Collections.Generic;
-    using System.Linq;
-
-    using Xunit;
 
     [Collection("General")]
     public class DicomUIDTest
@@ -155,6 +155,20 @@ namespace Dicom
             Assert.Equal(DicomUidType.Unknown, uid.Type);
         }
 
+        [Fact]
+        public void DicomStorageCategoryTest()
+        {
+            // just check some DicomUIDs randomly
+            Assert.Equal(DicomStorageCategory.Image, DicomUID.SecondaryCaptureImageStorage.StorageCategory);
+            Assert.Equal(DicomStorageCategory.None, DicomUID.StorageCommitmentPushModel.StorageCategory);
+            Assert.Equal(DicomStorageCategory.None, DicomUID.Verification.StorageCategory);
+            Assert.Equal(DicomStorageCategory.StructuredReport, DicomUID.MammographyCADSRStorage.StorageCategory);
+            Assert.Equal(DicomStorageCategory.Raw, DicomUID.RawDataStorage.StorageCategory);
+            Assert.Equal(DicomStorageCategory.Image, DicomUID.DigitalXRayImageStorageForProcessing.StorageCategory);
+            Assert.Equal(DicomStorageCategory.Volume, DicomUID.EnhancedUSVolumeStorage.StorageCategory);
+            Assert.Equal(DicomStorageCategory.None, DicomUID.VolumeMeasurements7472.StorageCategory);
+        }
+
         #endregion
 
         #region Support data
@@ -165,8 +179,8 @@ namespace Dicom
             {
                 yield return new object[] { DicomUID.AbnormalLinesFindingOrFeature6103, DicomUidType.ContextGroupName, false };
                 yield return new object[] { DicomUID.AbstractMultiDimensionalImageModel, DicomUidType.ApplicationHostingModel, false };
-                yield return new object[] { DicomUID.NuclearMedicineImageStorageRETIRED, DicomUidType.SOPClass, true };
-                yield return new object[] { DicomUID.SPM2GRAYFrameOfReference, DicomUidType.FrameOfReference, false };
+                yield return new object[] { DicomUID.NuclearMedicineImageStorageRetiredRETIRED, DicomUidType.SOPClass, true };
+                yield return new object[] { DicomUID.SPM2GRAY, DicomUidType.FrameOfReference, false };
                 yield return new object[] { DicomUID.GeneralPurposeWorklistInformationModelFINDRETIRED, DicomUidType.SOPClass, true };
                 yield return new object[] { DicomUID.TransducerOrientation6, DicomUidType.ContextGroupName, false };
                 yield return new object[] { DicomUID.UltrasoundTransducerGeometry12033, DicomUidType.ContextGroupName, false };

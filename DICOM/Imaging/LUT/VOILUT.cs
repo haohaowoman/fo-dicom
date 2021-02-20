@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -61,7 +61,7 @@ namespace Dicom.Imaging.LUT
 
         #region Public Methods
 
-        public void Recalculate()
+        public virtual void Recalculate()
         {
             if (_renderOptions.WindowWidth != WindowWidth || _renderOptions.WindowCenter != WindowCenter)
             {

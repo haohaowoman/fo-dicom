@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 #if NET35
@@ -13,15 +13,15 @@ namespace Dicom.Network
     /// </summary>
     public abstract class DicomService
     {
-        #region CONSTRUCTORS
+#region CONSTRUCTORS
 
         protected DicomService(INetworkStream stream, Encoding fallbackEncoding, Logger log)
         {
         }
 
-        #endregion
+#endregion
 
-        #region Send Methods
+#region Send Methods
 
         protected void SendAssociationRequest(DicomAssociation association) { }
 
@@ -39,7 +39,7 @@ namespace Dicom.Network
 
         protected void SendAbort(DicomAbortSource source, DicomAbortReason reason) { }
 
-        #endregion
+#endregion
     }
 }
 
@@ -59,15 +59,16 @@ using Dicom.IO.Reader;
 using Dicom.IO.Writer;
 using Dicom.Log;
 using Dicom.Network.Client;
+using Dicom.Network.Client.Tasks;
 
 namespace Dicom.Network
 {
 
-	/// <summary>
-	/// Delegate for passing byte array
-	/// </summary>
-	/// <param name="unsupportedBytes">byte array to be passed to the delegate.</param>
-	public delegate void PDUBytesHandler(byte[] unsupportedBytes);
+    /// <summary>
+    /// Delegate for passing byte array
+    /// </summary>
+    /// <param name="unsupportedBytes">byte array to be passed to the delegate.</param>
+    public delegate void PDUBytesHandler(byte[] unsupportedBytes);
 
     /// <summary>
     /// Base class for DICOM network services.
@@ -373,12 +374,14 @@ namespace Dicom.Network
                 }
                 catch (ObjectDisposedException e)
                 {
-                    // ignore ObjectDisposedException, that may happen, when closing a connection.
+                    // This may happen when closing a connection.
+                    Logger.Error("An 'object disposed' exception occurred while writing the next PDU to the network stream. " +
+                                 "This can happen when the connection is being closed", e);
                 }
                 catch (Exception e)
                 {
                     Logger.Error("Exception sending PDU: {@error}", e);
-                    await TryCloseConnectionAsync(e).ConfigureAwait(false);
+                    await TryCloseConnectionAsync(e, true).ConfigureAwait(false);
                 }
 
                 lock (_lock) _writing = false;
@@ -428,8 +431,7 @@ namespace Dicom.Network
                         {
                             int bytesToRead = Math.Min(_readLength, MaxBytesToRead);
                             var tempBuffer = new byte[bytesToRead];
-                            count = await stream.ReadAsync(tempBuffer, 0, bytesToRead)
-                                .ConfigureAwait(false);
+                            count = await stream.ReadAsync(tempBuffer, 0, bytesToRead).ConfigureAwait(false);
 
                             if (count == 0)
                             {
@@ -451,117 +453,118 @@ namespace Dicom.Network
                     switch (raw.Type)
                     {
                         case 0x01:
-                        {
-                            Association = new DicomAssociation
                             {
-                                RemoteHost = _network.RemoteHost,
-                                RemotePort = _network.RemotePort
-                            };
+                                Association = new DicomAssociation
+                                {
+                                    RemoteHost = _network.RemoteHost,
+                                    RemotePort = _network.RemotePort,
+                                    Options = Options
+                                };
 
-                            var pdu = new AAssociateRQ(Association);
-                            if (DoHandlePDUBytes != null)
-                            {
-                                pdu.HandlePDUBytes += DoHandlePDUBytes;
+                                var pdu = new AAssociateRQ(Association);
+                                if (DoHandlePDUBytes != null)
+                                {
+                                    pdu.HandlePDUBytes += DoHandlePDUBytes;
+                                }
+
+                                pdu.Read(raw);
+                                if (DoHandlePDUBytes != null)
+                                {
+                                    pdu.HandlePDUBytes -= DoHandlePDUBytes;
+                                }
+
+                                LogID = Association.CallingAE;
+                                if (Options.UseRemoteAEForLogName) Logger = LogManager.GetLogger(LogID);
+                                Logger.Info(
+                                    "{callingAE} <- Association request:\n{association}",
+                                    LogID,
+                                    Association.ToString());
+                                if (this is IDicomServiceProvider provider)
+                                    await provider.OnReceiveAssociationRequestAsync(Association).ConfigureAwait(false);
+                                break;
                             }
-
-                            pdu.Read(raw);
-                            if (DoHandlePDUBytes != null)
-                            {
-                                pdu.HandlePDUBytes -= DoHandlePDUBytes;
-                            }
-
-                            LogID = Association.CallingAE;
-                            if (Options.UseRemoteAEForLogName) Logger = LogManager.GetLogger(LogID);
-                            Logger.Info(
-                                "{callingAE} <- Association request:\n{association}",
-                                LogID,
-                                Association.ToString());
-                            if (this is IDicomServiceProvider provider)
-                                await provider.OnReceiveAssociationRequestAsync(Association).ConfigureAwait(false);
-                            break;
-                        }
                         case 0x02:
-                        {
-                            var pdu = new AAssociateAC(Association);
-                            pdu.Read(raw);
-                            LogID = Association.CalledAE;
-                            Logger.Info(
-                                "{calledAE} <- Association accept:\n{assocation}",
-                                LogID,
-                                Association.ToString());
-                            if (this is IDicomServiceUser dicomServiceUser)
-                                dicomServiceUser.OnReceiveAssociationAccept(Association);
-                            if (this is IDicomClientConnection connection)
-                                await connection.OnReceiveAssociationAcceptAsync(Association).ConfigureAwait(false);
-                            break;
-                        }
+                            {
+                                var pdu = new AAssociateAC(Association);
+                                pdu.Read(raw);
+                                LogID = Association.CalledAE;
+                                Logger.Info(
+                                    "{calledAE} <- Association accept:\n{assocation}",
+                                    LogID,
+                                    Association.ToString());
+                                if (this is IDicomServiceUser dicomServiceUser)
+                                    dicomServiceUser.OnReceiveAssociationAccept(Association);
+                                if (this is IDicomClientConnection connection)
+                                    await connection.OnReceiveAssociationAcceptAsync(Association).ConfigureAwait(false);
+                                break;
+                            }
                         case 0x03:
-                        {
-                            var pdu = new AAssociateRJ();
-                            pdu.Read(raw);
-                            Logger.Info(
-                                "{logId} <- Association reject [result: {pduResult}; source: {pduSource}; reason: {pduReason}]",
-                                LogID,
-                                pdu.Result,
-                                pdu.Source,
-                                pdu.Reason);
-                            if (this is IDicomServiceUser user)
-                                user.OnReceiveAssociationReject(pdu.Result, pdu.Source, pdu.Reason);
-                            if (this is IDicomClientConnection connection)
-                                await connection.OnReceiveAssociationRejectAsync(pdu.Result, pdu.Source, pdu.Reason).ConfigureAwait(false);
-                            if (await TryCloseConnectionAsync().ConfigureAwait(false)) return;
-                            break;
-                        }
+                            {
+                                var pdu = new AAssociateRJ();
+                                pdu.Read(raw);
+                                Logger.Info(
+                                    "{logId} <- Association reject [result: {pduResult}; source: {pduSource}; reason: {pduReason}]",
+                                    LogID,
+                                    pdu.Result,
+                                    pdu.Source,
+                                    pdu.Reason);
+                                if (this is IDicomServiceUser user)
+                                    user.OnReceiveAssociationReject(pdu.Result, pdu.Source, pdu.Reason);
+                                if (this is IDicomClientConnection connection)
+                                    await connection.OnReceiveAssociationRejectAsync(pdu.Result, pdu.Source, pdu.Reason).ConfigureAwait(false);
+                                if (await TryCloseConnectionAsync().ConfigureAwait(false)) return;
+                                break;
+                            }
                         case 0x04:
-                        {
-                            var pdu = new PDataTF();
-                            pdu.Read(raw);
-                            if (Options.LogDataPDUs) Logger.Info("{logId} <- {@pdu}", LogID, pdu);
-                            await ProcessPDataTFAsync(pdu).ConfigureAwait(false);
-                            break;
-                        }
+                            {
+                                var pdu = new PDataTF();
+                                pdu.Read(raw);
+                                if (Options.LogDataPDUs) Logger.Info("{logId} <- {@pdu}", LogID, pdu);
+                                await ProcessPDataTFAsync(pdu).ConfigureAwait(false);
+                                break;
+                            }
                         case 0x05:
-                        {
-                            var pdu = new AReleaseRQ();
-                            pdu.Read(raw);
-                            Logger.Info("{logId} <- Association release request", LogID);
-                            if(this is IDicomServiceProvider provider)
-                                await provider.OnReceiveAssociationReleaseRequestAsync().ConfigureAwait(false);
+                            {
+                                var pdu = new AReleaseRQ();
+                                pdu.Read(raw);
+                                Logger.Info("{logId} <- Association release request", LogID);
+                                if (this is IDicomServiceProvider provider)
+                                    await provider.OnReceiveAssociationReleaseRequestAsync().ConfigureAwait(false);
 
-                            break;
-                        }
+                                break;
+                            }
                         case 0x06:
-                        {
-                            var pdu = new AReleaseRP();
-                            pdu.Read(raw);
-                            Logger.Info("{logId} <- Association release response", LogID);
-                            if (this is IDicomServiceUser user)
-                                user.OnReceiveAssociationReleaseResponse();
-                            if (this is IDicomClientConnection connection)
-                                await connection.OnReceiveAssociationReleaseResponseAsync().ConfigureAwait(false);
-                            if (await TryCloseConnectionAsync().ConfigureAwait(false)) return;
-                            break;
-                        }
+                            {
+                                var pdu = new AReleaseRP();
+                                pdu.Read(raw);
+                                Logger.Info("{logId} <- Association release response", LogID);
+                                if (this is IDicomServiceUser user)
+                                    user.OnReceiveAssociationReleaseResponse();
+                                if (this is IDicomClientConnection connection)
+                                    await connection.OnReceiveAssociationReleaseResponseAsync().ConfigureAwait(false);
+                                if (await TryCloseConnectionAsync().ConfigureAwait(false)) return;
+                                break;
+                            }
                         case 0x07:
-                        {
-                            var pdu = new AAbort();
-                            pdu.Read(raw);
-                            Logger.Info(
-                                "{logId} <- Abort: {pduSource} - {pduReason}",
-                                LogID,
-                                pdu.Source,
-                                pdu.Reason);
-                            if (this is IDicomService service)
-                                service.OnReceiveAbort(pdu.Source, pdu.Reason);
-                            else if (this is IDicomClientConnection connection)
-                                await connection.OnReceiveAbortAsync(pdu.Source, pdu.Reason).ConfigureAwait(false);
-                            if (await TryCloseConnectionAsync().ConfigureAwait(false)) return;
-                            break;
-                        }
+                            {
+                                var pdu = new AAbort();
+                                pdu.Read(raw);
+                                Logger.Info(
+                                    "{logId} <- Abort: {pduSource} - {pduReason}",
+                                    LogID,
+                                    pdu.Source,
+                                    pdu.Reason);
+                                if (this is IDicomService service)
+                                    service.OnReceiveAbort(pdu.Source, pdu.Reason);
+                                else if (this is IDicomClientConnection connection)
+                                    await connection.OnReceiveAbortAsync(pdu.Source, pdu.Reason).ConfigureAwait(false);
+                                if (await TryCloseConnectionAsync().ConfigureAwait(false)) return;
+                                break;
+                            }
                         case 0xFF:
-                        {
-                            break;
-                        }
+                            {
+                                break;
+                            }
                         default:
                             throw new DicomNetworkException("Unknown PDU type");
                     }
@@ -787,7 +790,15 @@ namespace Dicom.Network
                                         .ConfigureAwait(false);
 
                                     Logger.Error("Error parsing C-Store dataset: {@error}", e);
-                                    (this as IDicomCStoreProvider).OnCStoreRequestException(_dimseStreamFile?.Name, e);
+                                    if (this is IDicomCStoreProvider thisAsCStoreProvider)
+                                    {
+                                        thisAsCStoreProvider.OnCStoreRequestException(_dimseStreamFile?.Name, e);
+                                    }
+                                    else if (this is IAsyncDicomCStoreProvider thisAsAsyncCStoreProvider)
+                                    {
+                                        await thisAsAsyncCStoreProvider.OnCStoreRequestExceptionAsync(_dimseStreamFile?.Name, e).ConfigureAwait(false);
+                                    }
+
                                     return;
                                 }
                             }
@@ -861,6 +872,13 @@ namespace Dicom.Network
                     return;
                 }
 
+                if (this is IAsyncDicomCStoreProvider thisAsyncDicomCStoreProvider)
+                {
+                    var response = await thisAsyncDicomCStoreProvider.OnCStoreRequestAsync(dimse as DicomCStoreRequest).ConfigureAwait(false);
+                    await SendResponseAsync(response).ConfigureAwait(false);
+                    return;
+                }
+
                 if (this is IDicomServiceUser thisDicomServiceUser)
                 {
                     var response = thisDicomServiceUser.OnCStoreRequest(dimse as DicomCStoreRequest);
@@ -880,72 +898,182 @@ namespace Dicom.Network
 
             if (dimse.Type == DicomCommandField.CFindRequest)
             {
-                var thisAsCFindProvider = this as IDicomCFindProvider ?? throw new DicomNetworkException("C-Find SCP not implemented");
+                if (this is IDicomCFindProvider thisAsCFindProvider)
+                {
+                    var responses = thisAsCFindProvider.OnCFindRequest(dimse as DicomCFindRequest);
+                    foreach (var response in responses) await SendResponseAsync(response).ConfigureAwait(false);
+                    return;
+                }
 
-                var responses = thisAsCFindProvider.OnCFindRequest(dimse as DicomCFindRequest);
-                foreach (var response in responses) await SendResponseAsync(response).ConfigureAwait(false);
-                return;
+                if (this is IAsyncDicomCFindProvider thisAsAsyncCFindProvider)
+                {
+                    var asyncResponses = await thisAsAsyncCFindProvider.OnCFindRequestAsync(dimse as DicomCFindRequest).ConfigureAwait(false);
+                    foreach (var asyncResponse in asyncResponses)
+                    {
+                        var response = await asyncResponse.ConfigureAwait(false);
+                        await SendResponseAsync(response).ConfigureAwait(false);
+                    }
+                    return;
+                }
+
+                throw new DicomNetworkException("C-Find SCP not implemented");
             }
 
             if (dimse.Type == DicomCommandField.CGetRequest)
             {
-                var thisAsCGetProvider = this as IDicomCGetProvider ?? throw new DicomNetworkException("C-GET SCP not implemented");
+                if (this is IDicomCGetProvider thisAsCGetProvider)
+                {
+                    var responses = thisAsCGetProvider.OnCGetRequest(dimse as DicomCGetRequest);
+                    foreach (var response in responses) await SendResponseAsync(response).ConfigureAwait(false);
+                    return;
+                }
 
-                var responses = thisAsCGetProvider.OnCGetRequest(dimse as DicomCGetRequest);
-                foreach (var response in responses) await SendResponseAsync(response).ConfigureAwait(false);
-                return;
+                if (this is IAsyncDicomCGetProvider thisAsAsyncCGetProvider)
+                {
+                    var asyncResponses = await thisAsAsyncCGetProvider.OnCGetRequestAsync(dimse as DicomCGetRequest).ConfigureAwait(false);
+                    foreach (var asyncResponse in asyncResponses)
+                    {
+                        var response = await asyncResponse.ConfigureAwait(false);
+                        await SendResponseAsync(response).ConfigureAwait(false);
+                    }
+                    return;
+                }
+
+                throw new DicomNetworkException("C-GET SCP not implemented");
             }
 
             if (dimse.Type == DicomCommandField.CMoveRequest)
             {
-                var thisAsCMoveProvider = this as IDicomCMoveProvider ?? throw new DicomNetworkException("C-Move SCP not implemented");
+                if (this is IDicomCMoveProvider thisAsCMoveProvider)
+                {
+                    var responses = thisAsCMoveProvider.OnCMoveRequest(dimse as DicomCMoveRequest);
+                    foreach (var response in responses) await SendResponseAsync(response).ConfigureAwait(false);
+                    return;
+                }
 
-                var responses = thisAsCMoveProvider.OnCMoveRequest(dimse as DicomCMoveRequest);
-                foreach (var response in responses) await SendResponseAsync(response).ConfigureAwait(false);
-                return;
+                if (this is IAsyncDicomCMoveProvider thisAsAsyncCMoveProvider)
+                {
+                    var asyncResponses = await thisAsAsyncCMoveProvider.OnCMoveRequestAsync(dimse as DicomCMoveRequest).ConfigureAwait(false);
+                    foreach (var asyncResponse in asyncResponses)
+                    {
+                        var response = await asyncResponse.ConfigureAwait(false);
+                        await SendResponseAsync(response).ConfigureAwait(false);
+                    }
+                    return;
+                }
+
+                throw new DicomNetworkException("C-Move SCP not implemented");
             }
 
             if (dimse.Type == DicomCommandField.CEchoRequest)
             {
-                var thisAsCEchoProvider = this as IDicomCEchoProvider ?? throw new DicomNetworkException("C-Echo SCP not implemented");
-
-                var response = thisAsCEchoProvider.OnCEchoRequest(dimse as DicomCEchoRequest);
-                await SendResponseAsync(response).ConfigureAwait(false);
-                return;
-            }
-
-            if (dimse.Type == DicomCommandField.NActionRequest || dimse.Type == DicomCommandField.NCreateRequest
-                || dimse.Type == DicomCommandField.NDeleteRequest
-                || dimse.Type == DicomCommandField.NEventReportRequest
-                || dimse.Type == DicomCommandField.NGetRequest || dimse.Type == DicomCommandField.NSetRequest)
-            {
-                var thisAsNServiceProvider = this as IDicomNServiceProvider ?? throw new DicomNetworkException("N-Service SCP not implemented");
-
-                DicomResponse response = null;
-                switch (dimse.Type)
+                if (this is IDicomCEchoProvider thisAsCEchoProvider)
                 {
-                    case DicomCommandField.NActionRequest:
-                        response = thisAsNServiceProvider.OnNActionRequest(dimse as DicomNActionRequest);
-                        break;
-                    case DicomCommandField.NCreateRequest:
-                        response = thisAsNServiceProvider.OnNCreateRequest(dimse as DicomNCreateRequest);
-                        break;
-                    case DicomCommandField.NDeleteRequest:
-                        response = thisAsNServiceProvider.OnNDeleteRequest(dimse as DicomNDeleteRequest);
-                        break;
-                    case DicomCommandField.NEventReportRequest:
-                        response = thisAsNServiceProvider.OnNEventReportRequest(dimse as DicomNEventReportRequest);
-                        break;
-                    case DicomCommandField.NGetRequest:
-                        response = thisAsNServiceProvider.OnNGetRequest(dimse as DicomNGetRequest);
-                        break;
-                    case DicomCommandField.NSetRequest:
-                        response = thisAsNServiceProvider.OnNSetRequest(dimse as DicomNSetRequest);
-                        break;
+                    var response = thisAsCEchoProvider.OnCEchoRequest(dimse as DicomCEchoRequest);
+                    await SendResponseAsync(response).ConfigureAwait(false);
+                    return;
                 }
 
-                await SendResponseAsync(response).ConfigureAwait(false);
-                return;
+                if (this is IAsyncDicomCEchoProvider thisAsAsyncCEchoProvider)
+                {
+                    var response = await thisAsAsyncCEchoProvider.OnCEchoRequestAsync(dimse as DicomCEchoRequest).ConfigureAwait(false);
+                    await SendResponseAsync(response).ConfigureAwait(false);
+                    return;
+                }
+
+                throw new DicomNetworkException("C-Echo SCP not implemented");
+            }
+
+            if (dimse.Type == DicomCommandField.NActionRequest
+                || dimse.Type == DicomCommandField.NCreateRequest
+                || dimse.Type == DicomCommandField.NDeleteRequest
+                || dimse.Type == DicomCommandField.NEventReportRequest
+                || dimse.Type == DicomCommandField.NGetRequest
+                || dimse.Type == DicomCommandField.NSetRequest)
+            {
+                if (this is IDicomNServiceProvider thisAsNServiceProvider)
+                {
+                    DicomResponse response = null;
+                    switch (dimse.Type)
+                    {
+                        case DicomCommandField.NActionRequest:
+                            response = thisAsNServiceProvider.OnNActionRequest(dimse as DicomNActionRequest);
+                            break;
+                        case DicomCommandField.NCreateRequest:
+                            response = thisAsNServiceProvider.OnNCreateRequest(dimse as DicomNCreateRequest);
+                            break;
+                        case DicomCommandField.NDeleteRequest:
+                            response = thisAsNServiceProvider.OnNDeleteRequest(dimse as DicomNDeleteRequest);
+                            break;
+                        case DicomCommandField.NEventReportRequest:
+                            response = thisAsNServiceProvider.OnNEventReportRequest(dimse as DicomNEventReportRequest);
+                            break;
+                        case DicomCommandField.NGetRequest:
+                            response = thisAsNServiceProvider.OnNGetRequest(dimse as DicomNGetRequest);
+                            break;
+                        case DicomCommandField.NSetRequest:
+                            response = thisAsNServiceProvider.OnNSetRequest(dimse as DicomNSetRequest);
+                            break;
+                    }
+
+                    await SendResponseAsync(response).ConfigureAwait(false);
+
+                    if ((dimse.Type == DicomCommandField.NActionRequest) &&
+                        (this is IDicomNEventReportRequestProvider thisNEventReportRequestProvider))
+                    {
+                        thisNEventReportRequestProvider.OnSendNEventReportRequest(dimse as DicomNActionRequest);
+                    }
+                    return;
+                }
+
+                if (this is IAsyncDicomNServiceProvider thisAsAsyncNServiceProvider)
+                {
+                    DicomResponse response = null;
+                    switch (dimse.Type)
+                    {
+                        case DicomCommandField.NActionRequest:
+                            response = await thisAsAsyncNServiceProvider.OnNActionRequestAsync(dimse as DicomNActionRequest).ConfigureAwait(false);
+                            break;
+                        case DicomCommandField.NCreateRequest:
+                            response = await thisAsAsyncNServiceProvider.OnNCreateRequestAsync(dimse as DicomNCreateRequest).ConfigureAwait(false);
+                            break;
+                        case DicomCommandField.NDeleteRequest:
+                            response = await thisAsAsyncNServiceProvider.OnNDeleteRequestAsync(dimse as DicomNDeleteRequest).ConfigureAwait(false);
+                            break;
+                        case DicomCommandField.NEventReportRequest:
+                            response = await thisAsAsyncNServiceProvider.OnNEventReportRequestAsync(dimse as DicomNEventReportRequest).ConfigureAwait(false);
+                            break;
+                        case DicomCommandField.NGetRequest:
+                            response = await thisAsAsyncNServiceProvider.OnNGetRequestAsync(dimse as DicomNGetRequest).ConfigureAwait(false);
+                            break;
+                        case DicomCommandField.NSetRequest:
+                            response = await thisAsAsyncNServiceProvider.OnNSetRequestAsync(dimse as DicomNSetRequest).ConfigureAwait(false);
+                            break;
+                    }
+
+                    await SendResponseAsync(response).ConfigureAwait(false);
+
+                    if ((dimse.Type == DicomCommandField.NActionRequest) &&
+                        (this is IAsyncDicomNEventReportRequestProvider thisAsAsyncNEventReportRequestProvider))
+                    {
+                        await thisAsAsyncNEventReportRequestProvider.OnSendNEventReportRequestAsync(dimse as DicomNActionRequest).ConfigureAwait(false);
+                    }
+                    return;
+                }
+
+                if (this is IDicomClientConnection connection)
+                {
+                    switch (dimse.Type)
+                    {
+                        case DicomCommandField.NEventReportRequest:
+                            var response = await connection.OnNEventReportRequestAsync(dimse as DicomNEventReportRequest).ConfigureAwait(false);
+                            await SendResponseAsync(response).ConfigureAwait(false);
+                            break;
+                    }
+                    return;
+                }
+
+                throw new DicomNetworkException("N-Service SCP not implemented");
             }
 
             throw new DicomNetworkException("Operation not implemented");
@@ -953,6 +1081,11 @@ namespace Dicom.Network
 
         private Task SendMessageAsync(DicomMessage message)
         {
+            if (message == null)
+            {
+                return CompletedTaskProvider.CompletedTask;
+            }
+
             lock (_lock)
             {
                 _msgQueue.Enqueue(message);
@@ -982,7 +1115,7 @@ namespace Dicom.Network
                     }
 
                     if (Association.MaxAsyncOpsInvoked > 0
-                        && _pending.Count(req => req.Type != DicomCommandField.CGetRequest)
+                        && _pending.Count(req => req.Type != DicomCommandField.CGetRequest && req.Type != DicomCommandField.NActionRequest)
                         >= Association.MaxAsyncOpsInvoked)
                     {
                         break;
@@ -1008,6 +1141,22 @@ namespace Dicom.Network
                 {
                     await DoSendMessageAsync(msg).ConfigureAwait(false);
                 }
+                catch (Exception e)
+                {
+                    Logger.Error($"Failed to send DICOM message due to {{@error}}", e);
+
+                    if (msg is DicomRequest dicomRequest)
+                    {
+                        Logger.Debug($"Removing request [{dicomRequest.MessageID}] from pending queue because an error occurred while sending it");
+
+                        lock (_lock)
+                        {
+                            _pending.Remove(dicomRequest);
+                        }
+                    }
+
+                    throw;
+                }
                 finally
                 {
                     lock (_lock) _sending = false;
@@ -1025,14 +1174,14 @@ namespace Dicom.Network
             DicomPresentationContext pc;
             if (msg is DicomCStoreRequest dicomCStoreRequest)
             {
-                pc =
-                    Association.PresentationContexts.FirstOrDefault(
-                        x =>
-                            x.Result == DicomPresentationContextResult.Accept && x.AbstractSyntax == msg.SOPClassUID
-                            && x.AcceptedTransferSyntax == dicomCStoreRequest.TransferSyntax);
-                if (pc == null)
-                    pc = Association.PresentationContexts.FirstOrDefault(
-                            x => x.Result == DicomPresentationContextResult.Accept && x.AbstractSyntax == msg.SOPClassUID);
+                var accpetedPcs = Association.PresentationContexts
+                    .Where(x =>
+                        x.Result == DicomPresentationContextResult.Accept &&
+                        x.AbstractSyntax == msg.SOPClassUID
+                     );
+
+                pc = accpetedPcs.FirstOrDefault(x => x.AcceptedTransferSyntax == dicomCStoreRequest.TransferSyntax)
+                    ?? accpetedPcs.FirstOrDefault();
             }
             else if (msg is DicomResponse)
             {
@@ -1123,7 +1272,7 @@ namespace Dicom.Network
                         await connection.OnRequestCompletedAsync(request, response).ConfigureAwait(false);
                     }
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     Logger.Error("Exception in DoSendMessageAsync: {error}", e);
                 }
@@ -1220,53 +1369,62 @@ namespace Dicom.Network
 
         private async Task CheckForTimeouts()
         {
-            if (Options?.RequestTimeout == null)
-                return;
-
-            var requestTimeout = Options.RequestTimeout.Value;
-
-            if (Interlocked.CompareExchange(ref _isCheckingForTimeouts, 1, 0) != 0)
-                return;
-
-            List<DicomRequest> timedOutPendingRequests;
-            lock (_lock)
+            while (true)
             {
-                if (!_pending.Any())
+                if (Options?.RequestTimeout == null)
                     return;
 
-                timedOutPendingRequests = _pending.Where(p => p.IsTimedOut(requestTimeout)).ToList();
-            }
+                var requestTimeout = Options.RequestTimeout.Value;
 
-            if (timedOutPendingRequests.Any())
-            {
-                for (var i = timedOutPendingRequests.Count - 1; i >= 0; i--)
+                if (Interlocked.CompareExchange(ref _isCheckingForTimeouts, 1, 0) != 0)
+                    return;
+                try
                 {
-                    DicomRequest timedOutPendingRequest = timedOutPendingRequests[i];
-                    try
+                    List<DicomRequest> timedOutPendingRequests;
+                    lock (_lock)
                     {
-                        Logger.Warn($"Request [{timedOutPendingRequest.MessageID}] timed out, removing from pending queue and triggering timeout callbacks");
-                        timedOutPendingRequest.OnTimeout?.Invoke(timedOutPendingRequest, new DicomRequest.OnTimeoutEventArgs(requestTimeout));
-                    }
-                    finally
-                    {
-                        lock (_lock)
-                        {
-                            _pending.Remove(timedOutPendingRequest);
-                        }
+                        if (!_pending.Any())
+                            return;
 
-                        if (this is IDicomClientConnection connection)
+                        timedOutPendingRequests = _pending.Where(p => p.IsTimedOut(requestTimeout)).ToList();
+                    }
+
+                    if (timedOutPendingRequests.Any())
+                    {
+                        for (var i = timedOutPendingRequests.Count - 1; i >= 0; i--)
                         {
-                            await connection.OnRequestTimedOutAsync(timedOutPendingRequest, requestTimeout).ConfigureAwait(false);
+                            DicomRequest timedOutPendingRequest = timedOutPendingRequests[i];
+                            try
+                            {
+                                Logger.Warn($"Request [{timedOutPendingRequest.MessageID}] timed out, removing from pending queue and triggering timeout callbacks");
+                                timedOutPendingRequest.OnTimeout?.Invoke(timedOutPendingRequest, new DicomRequest.OnTimeoutEventArgs(requestTimeout));
+                            }
+                            finally
+                            {
+                                lock (_lock)
+                                {
+                                    _pending.Remove(timedOutPendingRequest);
+                                }
+
+                                if (this is IDicomClientConnection connection)
+                                {
+                                    await connection.OnRequestTimedOutAsync(timedOutPendingRequest, requestTimeout).ConfigureAwait(false);
+                                }
+                            }
                         }
                     }
+
+                    await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    Logger.Error("An error occurred in the Fellow Oak DICOM timeout detection loop: {Error}", e);
+                }
+                finally
+                {
+                    _isCheckingForTimeouts = 0;
                 }
             }
-
-            await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
-
-            _isCheckingForTimeouts = 0;
-
-            await CheckForTimeouts().ConfigureAwait(false);
         }
 
         private async Task<bool> TryCloseConnectionAsync(Exception exception = null, bool force = false)
@@ -1295,7 +1453,7 @@ namespace Dicom.Network
                     }
                 }
 
-                if(this is IDicomService dicomService)
+                if (this is IDicomService dicomService)
                     dicomService.OnConnectionClosed(exception);
                 else if (this is IDicomClientConnection connection)
                     await connection.OnConnectionClosedAsync(exception).ConfigureAwait(false);
@@ -1489,7 +1647,7 @@ namespace Dicom.Network
                 _command = true;
                 _pcid = pcid;
                 _dicomMessage = dicomMessage;
-                _pduMax = Math.Min(max, Int32.MaxValue);
+                _pduMax = Math.Min(max, int.MaxValue);
                 _max = _pduMax == 0
                            ? _service.Options.MaxCommandBuffer
                            : Math.Min(_pduMax, _service.Options.MaxCommandBuffer);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -14,6 +14,29 @@ namespace Dicom.Imaging.Codec
     {
         #region Unit tests
 
+        [Fact]
+        public void ChangeTransferSyntax_FileFromRLELosslessToJPEGProcess2_4()
+        {
+            var file = DicomFile.Open(@".\Test Data\10200904.dcm");
+            var exception =
+                Record.Exception(
+                    () =>
+                    file.Clone(DicomTransferSyntax.JPEGProcess2_4));
+            Assert.Null(exception);
+        }
+
+        [Fact]
+        public void ChangeTransferSyntax_FileFromRLELosslessToJPEGProcess2_4_WithParameters()
+        {
+            var file = DicomFile.Open(@".\Test Data\10200904.dcm");
+            var exception =
+                Record.Exception(
+                    () =>
+                    file.Clone(DicomTransferSyntax.JPEGProcess2_4, new DicomJpegParams { Quality = 50 }));
+            Assert.Null(exception);
+        }
+
+#if !NETCOREAPP
         [Fact]
         public void ChangeTransferSyntax_FileFromJ2KToJPEGWithParameters_DoesNotThrow()
         {
@@ -36,8 +59,8 @@ namespace Dicom.Imaging.Codec
                     file.Dataset.Clone(DicomTransferSyntax.JPEGProcess14, new DicomJpegParams { Quality = 50 }));
             Assert.Null(exception);
         }
-
-/* 
+#endif
+/*
 TODO: This Test shall run green if issue #921 is solved.
 
         [Theory]
@@ -133,12 +156,12 @@ TODO: This Test shall run green if issue #921 is solved.
         }
 
         /// <summary>
-        /// White box testing of the RLELossless TS codec. 
+        /// White box testing of the RLELossless TS codec.
         /// </summary>
         [Fact]
         public void EncodeDecodeTestRLE2()
         {
-            var r = new Random(); 
+            var r = new Random();
             for (var i = 1; i < 1024; i++)
             {
                 for (var k = 0; k < 100; k++)
@@ -156,7 +179,7 @@ TODO: This Test shall run green if issue #921 is solved.
 
         /// <summary>
         /// Constructs a fake image of dimensions {w,h} with the given 2 byte per pixel data. Encodes and decodes
-        /// that data using the given Transfer Syntax on a fake 16 bit CT image and checks the data has not changed. 
+        /// that data using the given Transfer Syntax on a fake 16 bit CT image and checks the data has not changed.
         /// </summary>
         /// <param name="w">The w.</param>
         /// <param name="h">The h.</param>

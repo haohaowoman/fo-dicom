@@ -1,7 +1,8 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,10 +14,12 @@ namespace Dicom.Bugs
 {
     internal class VideoCStoreProvider : DicomService, IDicomServiceProvider, IDicomCStoreProvider
     {
+        private List<string> _storedFiles = new List<string>();
+
         private static readonly DicomTransferSyntax[] AcceptedVideoTransferSyntaxes =
         {
             DicomTransferSyntax.MPEG2,
-            DicomTransferSyntax.Lookup(DicomUID.MPEG4AVCH264HighProfileLevel41),
+            DicomTransferSyntax.Lookup(DicomUID.MPEG4HP41),
             DicomTransferSyntax.ImplicitVRLittleEndian
         };
 
@@ -46,6 +49,11 @@ namespace Dicom.Bugs
 
         public void OnConnectionClosed(Exception exception)
         {
+            foreach(var tempFile in _storedFiles)
+            {
+                File.Delete(tempFile);
+            }
+            _storedFiles.Clear();
         }
 
         public DicomCStoreResponse OnCStoreRequest(DicomCStoreRequest request)
@@ -53,6 +61,8 @@ namespace Dicom.Bugs
             var tempName = Path.GetTempFileName();
             Logger.Info(tempName);
             request.File.Save(tempName);
+
+            _storedFiles.Add(tempName);
 
             return new DicomCStoreResponse(request, DicomStatus.Success);
         }

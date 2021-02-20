@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2019 fo-dicom contributors.
+// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -155,6 +155,11 @@ namespace Dicom.Network.Client.States
             {
                 _dicomClient.Logger.Debug($"[{this}] Disconnected during association release, cleaning up...");
 
+                /*
+                 * Sometimes, the server is very swift at closing the connection, before we get a chance to process the Association Release response
+                 */
+                _dicomClient.NotifyAssociationReleased();
+
                 var connectionClosedEvent = await onDisconnect.ConfigureAwait(false);
                 if (connectionClosedEvent.Exception == null)
                 {
@@ -162,14 +167,14 @@ namespace Dicom.Network.Client.States
                 }
                 else
                 {
-                    return await _dicomClient.TransitionToCompletedWithErrorState(_initialisationParameters, connectionClosedEvent.Exception, cancellation);
+                    return await _dicomClient.TransitionToCompletedWithErrorState(_initialisationParameters, connectionClosedEvent.Exception, cancellation).ConfigureAwait(false);
                 }
             }
 
             if (winner == onAbort)
             {
                 _dicomClient.Logger.Warn($"[{this}] Cancellation requested during association release, immediately aborting association");
-                return await _dicomClient.TransitionToAbortState(_initialisationParameters, cancellation);
+                return await _dicomClient.TransitionToAbortState(_initialisationParameters, cancellation).ConfigureAwait(false);
             }
 
             throw new DicomNetworkException("Unknown winner of Task.WhenAny in DICOM client, this is likely a bug: " + winner);

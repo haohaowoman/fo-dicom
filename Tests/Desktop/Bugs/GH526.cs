@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System.Threading;
@@ -10,6 +10,7 @@ using Xunit.Abstractions;
 
 namespace Dicom.Bugs
 {
+    [Collection("Network"), Trait("Category", "Network")]
     public class GH526
     {
         private readonly XUnitDicomLogger _logger;
@@ -92,7 +93,7 @@ namespace Dicom.Bugs
                 request.OnResponseReceived = (req, rsp) =>
                 {
                     success = req.Dataset.InternalTransferSyntax.Equals(
-                                  DicomTransferSyntax.Lookup(DicomUID.MPEG4AVCH264HighProfileLevel41)) &&
+                                  DicomTransferSyntax.Lookup(DicomUID.MPEG4HP41)) &&
                               rsp.Status == DicomStatus.Success;
                     handle.Set();
                 };
@@ -121,7 +122,7 @@ namespace Dicom.Bugs
                 request.OnResponseReceived = (req, rsp) =>
                 {
                     success = req.Dataset.InternalTransferSyntax.Equals(
-                                  DicomTransferSyntax.Lookup(DicomUID.MPEG4AVCH264HighProfileLevel41)) &&
+                                  DicomTransferSyntax.Lookup(DicomUID.MPEG4HP41)) &&
                               rsp.Status == DicomStatus.Success;
                     handle.Set();
                 };

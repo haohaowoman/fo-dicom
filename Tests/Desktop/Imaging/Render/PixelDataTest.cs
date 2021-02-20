@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using Dicom.IO.Buffer;
@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Dicom.Imaging.Render
 {
-
+    [Collection("Imaging")]
     public class PixelDataTest
     {
         #region Unit tests

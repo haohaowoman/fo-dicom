@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -221,7 +221,7 @@ namespace Dicom.Imaging.Codec
             DicomCodecParams parameters)
         {
             if (codec == null)
-                throw new DicomCodecException("Decoding dataset with transfer syntax: {0} is not supported.",
+                throw new DicomCodecException("Decoding dataset with transfer syntax: {0} is not supported. See here to get help resolving the reason: https://github.com/fo-dicom/fo-dicom/wiki/Native-codecs-on-.NET",
                     oldDataset.InternalTransferSyntax);
 
             var oldPixelData = DicomPixelData.Create(oldDataset);
@@ -246,7 +246,7 @@ namespace Dicom.Imaging.Codec
             DicomCodecParams parameters)
         {
             if (codec == null)
-                throw new DicomCodecException("Encoding dataset to transfer syntax: {0} is not supported.", outSyntax);
+                throw new DicomCodecException("Encoding dataset to transfer syntax: {0} is not supported. See here to get help resolving the reason: https://github.com/fo-dicom/fo-dicom/wiki/Native-codecs-on-.NET", outSyntax);
 
             var oldPixelData = DicomPixelData.Create(oldDataset);
 

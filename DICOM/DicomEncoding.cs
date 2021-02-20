@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 namespace Dicom
@@ -156,6 +156,7 @@ namespace Dicom
                 case "iso-2022-jp":
                     return "ISO 2022 IR 159"; // JIS X 0212 (Kanji) Extended
                 case "GB18030":
+                case "gb18030":
                     return "GB18030"; // Chinese (Simplified) Extended
                 case "utf-8":
                     return "ISO_IR 192"; // Unicode in UTF-8

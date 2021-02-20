@@ -1,7 +1,8 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 #if !NET35
+using System.IO;
 using System.Threading.Tasks;
 #endif
 
@@ -132,7 +133,7 @@ namespace Dicom.IO
         /// Skip position <paramref name="count"/> number of bytes.
         /// </summary>
         /// <param name="count">Number of bytes to skip.</param>
-        void Skip(int count);
+        void Skip(uint count);
 
         /// <summary>
         /// Set a mark at the current position.
@@ -176,5 +177,11 @@ namespace Dicom.IO
         /// <param name="state">Callback state.</param>
         /// <returns>true if source contains sufficient number of remaining bytes, false otherwise.</returns>
         bool Require(uint count, ByteSourceCallback callback, object state);
+
+        /// <summary>
+        /// Get stream of this byte source.
+        /// </summary>
+        /// <returns>The stream.</returns>
+        Stream GetStream();
     }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -73,14 +73,14 @@ namespace Dicom
         [Fact]
         public void DicomUnsignedShort_Array_ExplicitMinus1InterpretAs0()
         {
-            var element = new DicomUnsignedShort(DicomTag.ReferencedFrameNumbers, 1, 2, 3, 4, 5);
+            var element = new DicomUnsignedShort(DicomTag.ReferencedFrameNumbersRETIRED, 1, 2, 3, 4, 5);
             Assert.Equal(element.Get<ushort>(-1), element.Get<ushort>(0));
         }
 
         [Fact]
         public void DicomUnsignedShort_Array_ExplicitMinus2Throws()
         {
-            var element = new DicomUnsignedShort(DicomTag.ReferencedFrameNumbers, 1, 2, 3, 4, 5);
+            var element = new DicomUnsignedShort(DicomTag.ReferencedFrameNumbersRETIRED, 1, 2, 3, 4, 5);
             Assert.Throws<ArgumentOutOfRangeException>(() => element.Get<ushort>(-2));
         }
 
@@ -384,6 +384,12 @@ namespace Dicom
         }
 
         [Fact]
+        public void DicomIntegerString_GetIntArrayFromString_ReturnsArray()
+        {
+            this.TestDicomIntegerStringGetArrayFromString<int>();
+        }
+
+        [Fact]
         public void DicomIntegerString_GetLongArray_ReturnsArray()
         {
             this.TestDicomIntegerStringGetArray<long>();
@@ -492,6 +498,14 @@ namespace Dicom
             Assert.Equal(expected.Select(i => (T)Convert.ChangeType(i, Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T))), actual);
         }
 
+        internal void TestDicomIntegerStringGetArrayFromString<T>()
+        {
+            var expected = new[] { 35, 45, 55 };
+            var element = new DicomIntegerString(DicomTag.AttachedContours, new [] { "35.0", "45.0000", "55" });
+            var actual = element.Get<T[]>();
+            Assert.Equal(expected.Select(i => (T)Convert.ChangeType(i, Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T))), actual);
+        }
+
         #endregion
 
         #region Support types
@@ -509,31 +523,31 @@ namespace Dicom
 
         public static IEnumerable<object[]> KnownTransferSyntaxes = new[]
         {
-            new object[] { DicomUID.JPEG2000LosslessOnly, DicomTransferSyntax.JPEG2000Lossless },
+            new object[] { DicomUID.JPEG2000Lossless, DicomTransferSyntax.JPEG2000Lossless },
             new object[] { DicomUID.ImplicitVRLittleEndian, DicomTransferSyntax.ImplicitVRLittleEndian },
-            new object[] { DicomUID.JPEGExtended24, DicomTransferSyntax.JPEGProcess2_4 },
-            new object[] { DicomUID.JPEG2000LosslessOnly, DicomTransferSyntax.JPEG2000Lossless },
+            new object[] { DicomUID.JPEGExtended12Bit, DicomTransferSyntax.JPEGProcess2_4 },
+            new object[] { DicomUID.JPEG2000Lossless, DicomTransferSyntax.JPEG2000Lossless },
             new object[] { DicomUID.ExplicitVRBigEndianRETIRED, DicomTransferSyntax.ExplicitVRBigEndian },
             new object[] { DicomUID.GEPrivateImplicitVRBigEndian, DicomTransferSyntax.GEPrivateImplicitVRBigEndian },
-            new object[] { DicomUID.MPEG2, DicomTransferSyntax.MPEG2 }
+            new object[] { DicomUID.MPEG2MPML, DicomTransferSyntax.MPEG2 }
         };
 
         public static IEnumerable<object[]> TransferSyntaxUids = new[]
         {
             new object[] { DicomUID.XMLEncodingRETIRED },
-            new object[] { DicomUID.MPEG4AVCH264HighProfileLevel42For2DVideo },
-            new object[] { DicomUID.JPEG2000Part2MultiComponentLosslessOnly },
+            new object[] { DicomUID.MPEG4HP422D },
+            new object[] { DicomUID.JPEG2000MCLossless },
             new object[] { DicomUID.JPIPReferencedDeflate },
             new object[] { DicomUID.RFC2557MIMEEncapsulationRETIRED }
         };
 
         public static IEnumerable<object[]> NonTransferSyntaxUids = new[]
         {
-            new object[] { DicomUID.AbdominalArteriesLateral12111 },
+            new object[] { DicomUID.AbdominopelvicArteriesPaired12111 },
             new object[] { DicomUID.CTImageStorage },
-            new object[] { DicomUID.StorageCommitmentPushModelSOPClass },
+            new object[] { DicomUID.StorageCommitmentPushModel },
             new object[] { DicomUID.dicomTransferSyntax },
-            new object[] { DicomUID.PETColorPaletteSOPInstance }
+            new object[] { DicomUID.PETPalette }
         };
 
         #endregion

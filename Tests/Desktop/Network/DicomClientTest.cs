@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -184,7 +184,7 @@ namespace Dicom.Network
 
                 var task = client.SendAsync("127.0.0.1", port, false, "SCU", "ANY-SCP");
                 //await Task.WhenAny(task, Task.Delay(10000));
-                await task;
+                await task.ConfigureAwait(false);
                 Assert.Equal(1, counter);
             }
         }
@@ -208,7 +208,7 @@ namespace Dicom.Network
                     client.AddRequest(new DicomCEchoRequest {OnResponseReceived = (req, res) => Interlocked.Increment(ref actual)});
 
                 var task = client.SendAsync("127.0.0.1", port, false, "SCU", "ANY-SCP");
-                await Task.WhenAny(task, Task.Delay(30000));
+                await Task.WhenAny(task, Task.Delay(30000)).ConfigureAwait(false);
 
                 Assert.Equal(expected, actual);
             }
@@ -288,7 +288,7 @@ namespace Dicom.Network
                         await client.SendAsync("127.0.0.1", port, false, "SCU", "ANY-SCP");
                         _testOutputHelper.WriteLine("Sent (or timed out) #{0}", requestIndex);
                     }).ToList();
-                await Task.WhenAll(requests);
+                await Task.WhenAll(requests).ConfigureAwait(false);
 
                 Assert.Equal(expected, actual);
             }
@@ -588,7 +588,7 @@ namespace Dicom.Network
             }
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky test uses 1 second timeout, which can fail on slow systems")]
         public void Old_IsSendRequired_AddedRequestIsConnected_ReturnsFalse()
         {
             var port = Ports.GetNext();
@@ -764,7 +764,7 @@ namespace Dicom.Network
         }
 
         [Theory]
-        [InlineData( /*number of requests:*/ 2, /* seconds between each request: */ 4, /* linger: */ 5)]
+        [InlineData( /*number of requests:*/ 6, /* seconds between each request: */ 1, /* linger: */ 5)]
         public async Task Old_SendAsync_Linger_ShouldKeepDelayingLingerAsLongAsRequestsAreComingIn(int numberOfRequests, int secondsBetweenEachRequest,
             int lingerTimeoutInSeconds)
         {
@@ -821,7 +821,7 @@ namespace Dicom.Network
             }
         }
 
-        [Theory]
+        [Theory(Skip = "Flaky test, use the new DicomClient if you have issues with the lingering system of DicomClient")]
         [InlineData( /*number of requests:*/ 2, /* seconds between each request: */ 5, /* linger: */ 3)]
         public async Task Old_SendAsync_Linger_ShouldAutomaticallyOpenNewAssociationAfterLingerTime(int numberOfRequests, int secondsBetweenEachRequest,
             int lingerTimeoutInSeconds)
@@ -880,7 +880,7 @@ namespace Dicom.Network
             }
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky test, use the new DicomClient if you have issues with the lingering system of DicomClient")]
         public async Task Old_SendAsync_Linger_ShouldAutomaticallyOpenNewAssociationAfterLingerTimeAfterLastRequest()
         {
             var numberOfRequests = 5;
@@ -1059,16 +1059,9 @@ namespace Dicom.Network
                 _associations = new ConcurrentBag<DicomAssociation>();
             }
 
-            async Task WaitForALittleBit()
-            {
-                var ms = new Random().Next(10);
-                await Task.Delay(ms);
-            }
-
             /// <inheritdoc />
             public async Task OnReceiveAssociationRequestAsync(DicomAssociation association)
             {
-                await WaitForALittleBit();
                 foreach (var pc in association.PresentationContexts)
                 {
                     pc.SetResult(DicomPresentationContextResult.Accept);
@@ -1082,7 +1075,6 @@ namespace Dicom.Network
             /// <inheritdoc />
             public async Task OnReceiveAssociationReleaseRequestAsync()
             {
-                await WaitForALittleBit();
                 await SendAssociationReleaseResponseAsync();
             }
 
@@ -1101,8 +1093,6 @@ namespace Dicom.Network
                 _onRequest(request);
 
                 _requests.Add(request);
-
-                WaitForALittleBit().GetAwaiter().GetResult();
 
                 return new DicomCEchoResponse(request, DicomStatus.Success);
             }

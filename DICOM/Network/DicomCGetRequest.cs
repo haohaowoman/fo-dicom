@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 namespace Dicom.Network
@@ -33,7 +33,7 @@ namespace Dicom.Network
         public DicomCGetRequest(
             string studyInstanceUid,
             DicomPriority priority = DicomPriority.Medium)
-            : base(DicomCommandField.CGetRequest, DicomUID.StudyRootQueryRetrieveInformationModelGET, priority)
+            : base(DicomCommandField.CGetRequest, DicomUID.StudyRootQueryRetrieveInformationModelGet, priority)
         {
             // when creating requests, one may be forced to use invalid UIDs. So turn off validation
             Dataset = new DicomDataset().NotValidated();
@@ -57,7 +57,7 @@ namespace Dicom.Network
             string studyInstanceUid,
             string seriesInstanceUid,
             DicomPriority priority = DicomPriority.Medium)
-            : base(DicomCommandField.CGetRequest, DicomUID.StudyRootQueryRetrieveInformationModelGET, priority)
+            : base(DicomCommandField.CGetRequest, DicomUID.StudyRootQueryRetrieveInformationModelGet, priority)
         {
             // when creating requests, one may be forced to use invalid UIDs. So turn off validation
             Dataset = new DicomDataset().NotValidated();
@@ -86,7 +86,7 @@ namespace Dicom.Network
             string seriesInstanceUid,
             string sopInstanceUid,
             DicomPriority priority = DicomPriority.Medium)
-            : base(DicomCommandField.CGetRequest, DicomUID.StudyRootQueryRetrieveInformationModelGET, priority)
+            : base(DicomCommandField.CGetRequest, DicomUID.StudyRootQueryRetrieveInformationModelGet, priority)
         {
             // when creating requests, one may be forced to use invalid UIDs. So turn off validation
             Dataset = new DicomDataset().NotValidated();

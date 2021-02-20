@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 namespace Dicom.Dump
@@ -553,5 +553,6 @@ namespace Dicom.Dump
             var file = _anonymizer.Anonymize(_file);
             OpenFile(file);
         }
+
     }
 }

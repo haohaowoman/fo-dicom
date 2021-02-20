@@ -1,6 +1,7 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
+using Dicom.Helpers;
 using System.IO;
 using System.Threading.Tasks;
 using Xunit;
@@ -22,7 +23,7 @@ namespace Dicom.IO.Reader
             if (File.Exists(filename))
             {
                 byte[] buff = File.ReadAllBytes(filename);
-                using (MemoryStream stream = new MemoryStream(buff))
+                using (var stream = new MemoryStream(buff))
                 {
                     dcm = DicomFile.Open(stream, FileReadOption.ReadAll);
                 }
@@ -31,7 +32,9 @@ namespace Dicom.IO.Reader
             // the file shall be completely read in memory, so writing it should be possible even if the stream has been colsed
             string tmpFile = Path.GetTempFileName();
             dcm.Save(tmpFile);
-            if (File.Exists(tmpFile)) File.Delete(tmpFile);
+            Assert.True(File.Exists(tmpFile));
+            Assert.True(new FileInfo(tmpFile).Length > 0);
+            IOHelper.DeleteIfExists(tmpFile);
         }
 
 
@@ -43,7 +46,7 @@ namespace Dicom.IO.Reader
             if (File.Exists(filename))
             {
                 byte[] buff = File.ReadAllBytes(filename);
-                using (MemoryStream stream = new MemoryStream(buff))
+                using (var stream = new MemoryStream(buff))
                 {
                     dcm = DicomFile.Open(stream, FileReadOption.ReadLargeOnDemand);
                 }
@@ -52,19 +55,22 @@ namespace Dicom.IO.Reader
             // this will save the image without pixels and generate an ObjectDisposedException
             string tmpFile = Path.GetTempFileName();
             Assert.Throws<DicomIoException>(() => dcm.Save(tmpFile));
-            if (File.Exists(tmpFile)) File.Delete(tmpFile);
+            IOHelper.DeleteIfExists(tmpFile);
         }
 
 
-        [Fact]
-        public void ReadLargeFileFromStream_WithoutPixeldata()
+        [Theory]
+        [InlineData(@".\Test Data\GH355.dcm")]
+        [InlineData(@".\Test Data\10200904.dcm")]
+        [InlineData(@".\Test Data\CR-MONO1-10-chest")]
+        [InlineData(@".\Test Data\TestPattern_RGB.dcm")]
+        public void ReadLargeFileFromStream_WithoutPixeldata(string filename)
         {
             DicomFile dcm = null;
-            string filename = @".\Test Data\GH355.dcm";
             if (File.Exists(filename))
             {
                 byte[] buff = File.ReadAllBytes(filename);
-                using (MemoryStream stream = new MemoryStream(buff))
+                using (var stream = new MemoryStream(buff))
                 {
                     dcm = DicomFile.Open(stream, FileReadOption.SkipLargeTags);
                 }
@@ -82,7 +88,7 @@ namespace Dicom.IO.Reader
             if (File.Exists(filename))
             {
                 byte[] buff = File.ReadAllBytes(filename);
-                using (MemoryStream stream = new MemoryStream(buff))
+                using (var stream = new MemoryStream(buff))
                 {
                     dcm = DicomFile.Open(stream, FileReadOption.SkipLargeTags);
                 }

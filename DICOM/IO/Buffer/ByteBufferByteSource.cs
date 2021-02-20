@@ -1,10 +1,11 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 namespace Dicom.IO.Buffer
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
 
 #if !NET35
     using System.Threading.Tasks;
@@ -244,7 +245,7 @@ namespace Dicom.IO.Buffer
                         if (!SwapBuffers()) throw new DicomIoException("Tried to retrieve {0} bytes past end of source.", count);
                     }
 
-                    int n = (int)System.Math.Min(_currentData.Length - _currentPos, count);
+                    int n = (int)Math.Min(_currentData.Length - _currentPos, count);
                     Array.Copy(_currentData, (int)_currentPos, bytes, p, n);
 
                     count -= n;
@@ -271,7 +272,7 @@ namespace Dicom.IO.Buffer
 #endif
 
         /// <inheritdoc />
-        public void Skip(int count)
+        public void Skip(uint count)
         {
             lock (_lock)
             {
@@ -445,6 +446,20 @@ namespace Dicom.IO.Buffer
 
                 _position++;
                 return _currentData[_currentPos++];
+            }
+        }
+
+        public Stream GetStream()
+        {
+            lock (_lock)
+            {
+                Stream stream = new MemoryStream();
+                foreach (var item in _buffers)
+                {
+                    byte[] data = item.Data;
+                    stream.Write(data, 0, data.Length);
+                }
+                return stream;
             }
         }
 

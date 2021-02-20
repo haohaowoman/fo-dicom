@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -96,8 +96,8 @@ namespace Dicom.Network
                 return new DicomCStoreApplicationInfo(rawApplicationInfo);
 
             if (sopClass.Name.Contains("- FIND") ||
-                sopClass == DicomUID.UnifiedProcedureStepPullSOPClass ||
-                sopClass == DicomUID.UnifiedProcedureStepWatchSOPClass)
+                sopClass == DicomUID.UnifiedProcedureStepPull ||
+                sopClass == DicomUID.UnifiedProcedureStepWatch)
                 return new DicomCFindApplicationInfo(rawApplicationInfo);
 
             if (sopClass.Name.Contains("- MOVE"))

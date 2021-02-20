@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 namespace Dicom.Printing
@@ -34,7 +34,7 @@ namespace Dicom.Printing
         /// <summary>
         /// Basic film box SOP class UID
         /// </summary>
-        public static readonly DicomUID SOPClassUID = DicomUID.BasicFilmBoxSOPClass;
+        public static readonly DicomUID SOPClassUID = DicomUID.BasicFilmBox;
 
         /// <summary>
         /// Basic film box SOP instance UID
@@ -400,7 +400,10 @@ namespace Dicom.Printing
             }
             Add(DicomTag.SOPClassUID, SOPClassUID);
             Add(DicomTag.SOPInstanceUID, SOPInstanceUID);
-
+            Add(DicomTag.ReferencedFilmSessionSequence, new DicomDataset {
+                new DicomUniqueIdentifier(DicomTag.ReferencedSOPClassUID, filmSession.SOPClassUID),
+                new DicomUniqueIdentifier(DicomTag.ReferencedSOPInstanceUID, filmSession.SOPInstanceUID)
+            });
 
             BasicImageBoxes = new List<ImageBox>();
         }
@@ -554,11 +557,11 @@ namespace Dicom.Printing
         /// </summary>
         private void CreateImageBox()
         {
-            DicomUID classUid = DicomUID.BasicGrayscaleImageBoxSOPClass;
+            DicomUID classUid = DicomUID.BasicGrayscaleImageBox;
 
             if (_filmSession.IsColor)
             {
-                classUid = DicomUID.BasicColorImageBoxSOPClass;
+                classUid = DicomUID.BasicColorImageBox;
             }
 
             DicomUID sopInstance = new DicomUID(

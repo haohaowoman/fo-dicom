@@ -1,6 +1,69 @@
-#### v.4.0.4 (TBD)
-* Bug fix: Prevent SSL handshake freeze from blocking the TCP listener (#923)
+#### v.4.0.8 (TBD)
+* Bug fix: No DICOM charset found for GB18030 in .NET Core (#1125)
+* Bug fix: Incorrect failed validation for Vr Type DS, both .NET Core and Framework (#1141)
+* Update to DICOM Standard 2021a. Nema now also provides Keywords for the UIDs, these are now used. Breaking change: some UID keywords have changed.
+* Bug fix: Some non-retired DicomTags had a name including "RETIRED". Now fixed the generation of DicomTag names. (#1131)
+* FrameGeometry is enhanced so that it also works for DX, CR or MG images. (#1138)
+* Private Creator UN tags are converted to LO (#1146)
+* Bug fix: Ensure timeout detection can never stop prematurely
 
+#### v.4.0.7 (11/1/2020)
+* Bug fix: Not able to open deflated dicom file which contains squence (#1097)
+* Bug fix: DS VR type value ending with \0 fails to serialize in JsonDicomConverter (#1078)
+* Allow disabling validation in JsonDicomConverter
+* Bug fix: IPv6 issue in DesktopNetworkStream
+* Optimize DicomTag.GetHashCode() (#1088)
+* Bug fix: Prevent special characters in association requests from crashing Fellow Oak DICOM (#1104)
+* Fixes caching of pixel data in DicomImage when rendering the same image multithreaded. (#805)
+* Fix handling of MaximumPDULength. DicomServer always repeated the clients value of MaximumPDULength in AssociationAccepted-message instead of returning its own value. (#1084)
+* Bug fix: It's very slow to open deflated dicom file. (#1115)
+* Bug fix: DicomUID Storage Commitment Push Model SOP Class was mapped to wrng DicomStorageCategory (#1113)
+* Handle PresentationStates and StructuredReports when creating a DICOMDIR (#1045)
+* Allow conversion of integerString into integer if original string had decimal with trailing zeros 
+* Bug fix: String decimals ending in . (ex. 10.) throw DicomValidationException even though they can be converted to decimal
+* Bug fix: FrameGeometry.PixelSpacingX and FrameGeometry.PixelSpacingY where wrong initialized. Now for clarity they are called PixelSpacingBetweenRows and PixelSpacingBetweenColumns.
+* Bug fix: Date (DA) and DateTime (DT) fields didn't support range in validation (#1105)
+
+#### v.4.0.6 (8/6/2020)
+* Update to DICOM Standard 2020b.
+* Handle N-Event requests in DicomClient (required for synchronous storage commitment) (#1001)
+* Bug fix: Fix DICOM Tag conversion for private tags for element numbers xxff (#1059)
+* ImplicitVRLittleEndian always added to presentation context by default causes other transfer syntax to not be accepted (#1048)
+* New interface IDicomNEventReportRequestProvider for DicomServer. This is necessary to handle synchronous storage commitment on server (#1055)
+* Bug fix: Fix the deserialization issue in JsonDicomConverter for NaN value in VR=FL (#1063)
+* Bug fix: IOException when reading/sending file > 2GB. (#1061)
+* Bug fix: DicomValidator ValidateLO issue, ESC is a valid character (#1043)
+* Bug fix: DicomValidation for UI when AddFile to DicomDirectory (#1053)
+* Bug fix: Exception occurred in Indexer of VOISequenceLUT Class (#1062)
+* Bug fix: Prevent DicomClient getting stuck when any Exception (except IOException) occurs while sending a PDU over the network (#1054)
+* Bug fix: Size of uncompressed YBR_FULL_422 images is calculated wrong (#645)
+* Bug fix: YBR_FULL_422 images should have a planar configuration value of zero (#1049)
+* When opening a DICOMDIR with invalid offsets, try to find the best matching records in a second run (#828)
+
+#### v.4.0.5 (5/18/2020)
+* Bug fix: DicomTags of ValueRepresentation LT have not been validated.
+* Bug fix: Unawaited task throws unhandled exception caught in finalizer thread when stopping Dicom Server. (#1013)
+* Bug fix: dependency of fo-dicom.ImageSharp nuget package was wrong. Now it also requires only netStandard1.3 (#1017)
+* Bug fix: Fixed freeze when reading SQ of length 0 (#1009)
+* Bug fix: DicomDictionary accessor thew exception on unknown keyword instead of returning null (#996)
+* Update version of ImageSharp to rc1
+* Bug fix: Comparing instance of class DicomStatus with null returned wrong value (#975)
+* Bug fix: Overlay origin cannot be set correctly. (#1028)
+* Add encoding to JsonDicomConverter on LO, SH and PN (#1020)
+
+#### v.4.0.4 (1/17/2020)
+* New feature: asynchronous counterparts to IDicomCEchoProvider, IDicomCFindProvider, IDicomCStoreProvider, IDicomCMoveProvider, IDicomCGetProvider and IDicomNServiceProvider
+* Bug fix: Prevent SSL handshake freeze from blocking the TCP listener (#923)
+* disable validation when cloning/copying existing DicomDatasets. Exceptions has been thrown when anonymizing files that contain invalid content.
+* Bug fix: FileReadOption.SkipLargeTags caused that only parts of a FragmentSequece have been read, which then lead to further errors. Now the whole FragmentSequence is skipped if only one part of this sequence is skipped.
+* Bug fix: Exception when anonymizing private tags, where the value representation is not known.
+* Implementation of IImage with ImageSharp, which is pure managed and can be used on any operation system. (#693)
+* Add link to wiki entry in DicomCodecException (#948)
+* Bug fix: DicomDataset.TryGetString throws if the element is an empty number-based element (#932)
+* Bug fix: Some continuations in the new DicomClient were not properly marked with ConfigureAwait, which could cause trouble
+* Bug fix: VOI LUT was not applied correctly (#949)
+* Add ReferencedFilmSessionSequence in N-Create message of BasicFilmBox (#967)
+* Bug fix: Exception when cloning to Jpeg Process2_4 when parameters are set to null.
 
 #### v.4.0.3 (9/21/2019)
 * Bug fix: Exception when adding an element of VR UR/UT/LT/ST with empty value (#915)

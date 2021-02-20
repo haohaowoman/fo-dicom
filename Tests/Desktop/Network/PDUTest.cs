@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System.Collections.Generic;
@@ -157,12 +157,12 @@ namespace Dicom.Network
                 DicomUID.ProcedureLogStorage,
                 new DicomCStoreApplicationInfo(DicomLevelOfSupport.Level2, DicomLevelOfDigitalSignatureSupport.Level3,
                     DicomElementCoercion.AllowCoercion),
-                DicomUID.StorageServiceClass,
+                DicomUID.Storage,
                 new[] {DicomUID.EnhancedSRStorage}
             },
             new object[]
             {
-                DicomUID.StudyRootQueryRetrieveInformationModelFIND,
+                DicomUID.StudyRootQueryRetrieveInformationModelFind,
                 new DicomCFindApplicationInfo(DicomCFindOption.RelationalQueries | DicomCFindOption.DateTimeMatching),
                 null,
                 new DicomUID[] {}

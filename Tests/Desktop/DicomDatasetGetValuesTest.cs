@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -222,6 +222,20 @@ namespace Dicom
             object[] objects = ds.GetValues<object>(element.Tag);
 
             Assert.Equal(expected, objects);
+        }
+
+        [Fact]
+        public void TryGetStringMayNeverThrow()
+        {
+            DicomDataset dataSet = new DicomDataset();
+
+            // add some empty value
+            dataSet.Add(DicomTag.PregnancyStatus, "");
+
+            foreach (var item in dataSet)
+            {
+                Assert.Null(Record.Exception(() => dataSet.TryGetString(item.Tag, out string _)));
+            }
         }
 
         #endregion

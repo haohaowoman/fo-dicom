@@ -3,8 +3,7 @@
 # Fellow Oak DICOM
 
 [![NuGet](https://img.shields.io/nuget/v/fo-dicom.svg)](https://www.nuget.org/packages/fo-dicom/)
-[![Build status](https://ci.appveyor.com/api/projects/status/r3yptmhufh3dl1xc?svg=true)](https://ci.appveyor.com/project/anders9ustafsson/fo-dicom)
-[![Build status](https://ci.appveyor.com/api/projects/status/9w8f6s0j5k7w8qtr?svg=true)](https://ci.appveyor.com/project/gofal/fo-dicom)
+![build development](https://github.com/fo-dicom/fo-dicom/workflows/build/badge.svg?branch=development)
 [![Join the chat at https://gitter.im/fo-dicom/fo-dicom](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/fo-dicom/fo-dicom?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ### Support Us!
@@ -34,8 +33,8 @@ This library is licensed under the [Microsoft Public License (MS-PL)](http://ope
 * Supports very large datasets with content loading on demand
 * Platform-specific image rendering
 * JSON support
-* XML export (preview)
-* Anonymization (preview)
+* XML export
+* Anonymization
 
 ### Installation
 Easiest is to obtain *fo-dicom* binaries from [NuGet](https://www.nuget.org/packages/fo-dicom/). This package reference the core *fo-dicom* assemblies for all Microsoft and Xamarin platforms.
@@ -59,6 +58,7 @@ Package | Description
 [fo-dicom.Serilog](https://www.nuget.org/packages/fo-dicom.Serilog/) | .NET connector to enable *fo-dicom* logging with Serilog
 [fo-dicom.Json](https://www.nuget.org/packages/fo-dicom.Json/) | PCL profile 111 library for JSON I/O support
 [fo-dicom.Drawing](https://www.nuget.org/packages/fo-dicom.Drawing/) | .NET Core library providing *System.Drawing* based image rendering and printing
+[fo-dicom.ImageSharp](https://www.nuget.org/packages/fo-dicom.ImageSharp/) | .NET Standard library providing *SixLabors.ImageSharp* based image rendering
 
 ### API Documentation
 The API documentation for the core library (represented by *fo-dicom.Desktop*) and the *log4net*, *NLog* and *Serilog* connectors is available [here](https://fo-dicom.github.io/).
@@ -153,3 +153,52 @@ await client.AddRequestAsync(cmove);
 await client.SendAsync(); 
 ```
 
+#### N-Action SCU
+```csharp
+// It is better to increase 'associationLingerTimeoutInMs' default is 50 ms, which may not be
+// be sufficient
+var dicomClient = new Dicom.Network.Client.DicomClient("127.0.0.1", 12345, false, "SCU-AE", "SCP-AE",
+DicomClientDefaults.DefaultAssociationRequestTimeoutInMs, DicomClientDefaults.DefaultAssociationReleaseTimeoutInMs,5000);
+var txnUid = DicomUIDGenerator.GenerateDerivedFromUUID().UID;
+var nActionDicomDataSet = new DicomDataset
+{
+    { DicomTag.TransactionUID,  txnUid }
+};
+var dicomRefSopSequence = new DicomSequence(DicomTag.ReferencedSOPSequence);
+var seqItem = new DicomDataset()
+{
+    { DicomTag.ReferencedSOPClassUID, "1.2.840.10008.5.1.4.1.1.1" },
+    { DicomTag.ReferencedSOPInstanceUID, "1.3.46.670589.30.2273540226.4.54" }
+};
+dicomRefSopSequence.Items.Add(seqItem);
+nActionDicomDataSet.Add(dicomRefSopSequence);
+var nActionRequest = new DicomNActionRequest(DicomUID.StorageCommitmentPushModelSOPClass,
+                DicomUID.StorageCommitmentPushModelSOPInstance, 1)
+{
+    Dataset = nActionDicomDataSet,
+    OnResponseReceived = (DicomNActionRequest request, DicomNActionResponse response) => 
+    {
+        Console.WriteLine("NActionResponseHandler, response status:{0}", response.Status);
+    },
+};
+await dicomClient.AddRequestAsync(nActionRequest);
+dicomClient.OnNEventReportRequest = OnNEventReportRequest;
+await dicomClient.SendAsync();
+
+private static Task<DicomNEventReportResponse> OnNEventReportRequest(DicomNEventReportRequest request)
+{
+    var refSopSequence = request.Dataset.GetSequence(DicomTag.ReferencedSOPSequence);
+    foreach(var item in refSopSequence.Items)
+    {
+        Console.WriteLine("SOP Class UID: {0}", item.GetString(DicomTag.ReferencedSOPClassUID));
+        Console.WriteLine("SOP Instance UID: {0}", item.GetString(DicomTag.ReferencedSOPInstanceUID));
+    }
+    return Task.FromResult(new DicomNEventReportResponse(request, DicomStatus.Success));
+}
+```
+
+### New to DICOM?
+
+If you are new to DICOM, then take a look at the DICOM tutorial of Saravanan Subramanian:
+https://saravanansubramanian.com/dicomtutorials/
+The author is also using fo-dicom in some code samples.

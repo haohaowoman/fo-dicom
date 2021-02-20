@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -85,11 +85,11 @@ namespace Dicom.IO
         /// <inheritdoc />
         public long Position => _stream.Position;
 
-      /// <inheritdoc />
-      public long Marker { get; private set; }
+        /// <inheritdoc />
+        public long Marker { get; private set; }
 
-      /// <inheritdoc />
-      public bool IsEOF => _stream.Position >= _stream.Length;
+        /// <inheritdoc />
+        public bool IsEOF => _stream.Position >= _stream.Length;
 
         /// <inheritdoc />
         public bool CanRewind => _stream.CanSeek;
@@ -107,64 +107,34 @@ namespace Dicom.IO
         #region METHODS
 
         /// <inheritdoc />
-        public byte GetUInt8()
-        {
-            return _reader.ReadByte();
-        }
+        public byte GetUInt8() => _reader.ReadByte();
 
         /// <inheritdoc />
-        public short GetInt16()
-        {
-            return _reader.ReadInt16();
-        }
+        public short GetInt16() => _reader.ReadInt16();
 
         /// <inheritdoc />
-        public ushort GetUInt16()
-        {
-            return _reader.ReadUInt16();
-        }
+        public ushort GetUInt16() => _reader.ReadUInt16();
 
         /// <inheritdoc />
-        public int GetInt32()
-        {
-            return _reader.ReadInt32();
-        }
+        public int GetInt32() => _reader.ReadInt32();
 
         /// <inheritdoc />
-        public uint GetUInt32()
-        {
-            return _reader.ReadUInt32();
-        }
+        public uint GetUInt32() => _reader.ReadUInt32();
 
         /// <inheritdoc />
-        public long GetInt64()
-        {
-            return _reader.ReadInt64();
-        }
+        public long GetInt64() => _reader.ReadInt64();
 
         /// <inheritdoc />
-        public ulong GetUInt64()
-        {
-            return _reader.ReadUInt64();
-        }
+        public ulong GetUInt64() => _reader.ReadUInt64();
 
         /// <inheritdoc />
-        public float GetSingle()
-        {
-            return _reader.ReadSingle();
-        }
+        public float GetSingle() => _reader.ReadSingle();
 
         /// <inheritdoc />
-        public double GetDouble()
-        {
-            return _reader.ReadDouble();
-        }
+        public double GetDouble() => _reader.ReadDouble();
 
         /// <inheritdoc />
-        public byte[] GetBytes(int count)
-        {
-            return _reader.ReadBytes(count);
-        }
+        public byte[] GetBytes(int count) => _reader.ReadBytes(count);
 
         /// <inheritdoc />
         public IByteBuffer GetBuffer(uint count)
@@ -177,12 +147,12 @@ namespace Dicom.IO
             else if (count >= LargeObjectSize && _readOption == FileReadOption.ReadLargeOnDemand)
             {
                 buffer = new FileByteBuffer(_file, _stream.Position, count);
-                _stream.Seek((int)count, SeekOrigin.Current);
+                _stream.Seek(count, SeekOrigin.Current);
             }
             else if (count >= LargeObjectSize && _readOption == FileReadOption.SkipLargeTags)
             {
                 buffer = null;
-                Skip((int)count);
+                Skip(count);
             }
             else // count < LargeObjectSize || _readOption == FileReadOption.ReadAll
             {
@@ -193,41 +163,35 @@ namespace Dicom.IO
 
 #if !NET35
         /// <inheritdoc />
-        public Task<IByteBuffer> GetBufferAsync(uint count)
-        {
-            return Task.FromResult(GetBuffer(count));
-        }
+        public Task<IByteBuffer> GetBufferAsync(uint count) => Task.FromResult(GetBuffer(count));
 #endif
 
         /// <inheritdoc />
         /// <param name="count">Number of bytes to skip.</param>
-        public void Skip(int count)
-        {
-            _stream.Seek(count, SeekOrigin.Current);
-        }
+        public void Skip(uint count) => _stream.Seek(count, SeekOrigin.Current);
 
         /// <inheritdoc />
-        public void Mark()
-        {
-            Marker = _stream.Position;
-        }
+        public void Mark() => Marker = _stream.Position;
 
         /// <inheritdoc />
-        public void Rewind()
-        {
-            _stream.Position = Marker;
-        }
+        public void Rewind() => _stream.Position = Marker;
 
         /// <inheritdoc />
         public void PushMilestone(uint count)
         {
-            lock (_lock) _milestones.Push(_stream.Position + count);
+            lock (_lock)
+            {
+                _milestones.Push(_stream.Position + count);
+            }
         }
 
         /// <inheritdoc />
         public void PopMilestone()
         {
-            lock (_lock) _milestones.Pop();
+            lock (_lock)
+            {
+                _milestones.Pop();
+            }
         }
 
         /// <inheritdoc />
@@ -235,16 +199,12 @@ namespace Dicom.IO
         {
             lock (_lock)
             {
-                if (_milestones.Count > 0 && _stream.Position >= _milestones.Peek()) return true;
-                return false;
+                return _milestones.Count > 0 && _stream.Position >= _milestones.Peek();
             }
         }
 
         /// <inheritdoc />
-        public bool Require(uint count)
-        {
-            return Require(count, null, null);
-        }
+        public bool Require(uint count) => Require(count, null, null);
 
         /// <inheritdoc />
         public bool Require(uint count, ByteSourceCallback callback, object state)
@@ -268,7 +228,10 @@ namespace Dicom.IO
         /// <param name="disposing">true if disposal request originates from Dispose call, false if request originates from sestructor.</param>
         protected virtual void Dispose(bool disposing)
         {
-            if (_disposed) return;
+            if (_disposed)
+            {
+                return;
+            }
 
             try
             {
@@ -286,6 +249,11 @@ namespace Dicom.IO
             { /* ignore exception */ }
 
             _disposed = true;
+        }
+
+        public Stream GetStream()
+        {
+            return _stream;
         }
 
         #endregion

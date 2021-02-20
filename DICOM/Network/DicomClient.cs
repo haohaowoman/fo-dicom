@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 #if !NET35
@@ -325,8 +325,10 @@ namespace Dicom.Network
             }
             catch (AggregateException e)
             {
-                // ReSharper disable once PossibleNullReferenceException
-                throw e.Flatten().InnerException;
+                var innerException = e.Flatten().InnerException;
+                if (innerException != null)
+                    throw innerException;
+                throw;
             }
         }
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System.Threading.Tasks;
@@ -14,6 +14,7 @@ namespace Dicom.Bugs
     using Dicom.Network;
     using Xunit;
 
+    [Collection("Network"), Trait("Category", "Network")]
     public class GH306
     {
         private readonly XUnitDicomLogger _logger;

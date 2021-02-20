@@ -1,6 +1,7 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Dicom.Network;
@@ -10,6 +11,7 @@ using Xunit;
 
 namespace Dicom.Bugs
 {
+    [Collection("Network"), Trait("Category", "Network")]
     public class GH538
     {
         #region Unit Tests
@@ -95,7 +97,7 @@ namespace Dicom.Bugs
         }
 
 #if NETSTANDARD
-        [Fact]
+        [Fact(Skip = "This test is broken since we now have a managed JPEG Lossless decoder in .NET Core")]
         public void OldCStoreRequestSend_16BitJpegFileToScpThatDoesNotSupportJpeg_TransferSuccessfulImplicitLENoPixelData()
         {
             const string file = @"Test Data/GH538-jpeg14sv1.dcm";
@@ -122,7 +124,8 @@ namespace Dicom.Bugs
                 Assert.True(success);
             }
         }
-        [Fact]
+
+        [Fact(Skip = "This test is broken since we now have a managed JPEG Lossless decoder in .NET Core")]
         public async Task CStoreRequestSend_16BitJpegFileToScpThatDoesNotSupportJpeg_TransferSuccessfulImplicitLENoPixelData()
         {
             const string file = @"Test Data/GH538-jpeg14sv1.dcm";
@@ -135,6 +138,7 @@ namespace Dicom.Bugs
                 var request = new DicomCStoreRequest(file);
                 request.OnResponseReceived = (req, rsp) =>
                 {
+                    Debugger.Break();
                     if (req.Dataset.InternalTransferSyntax.Equals(DicomTransferSyntax.ImplicitVRLittleEndian) &&
                         !req.Dataset.Contains(DicomTag.PixelData) && rsp.Status == DicomStatus.Success) success = true;
                     handle.Set();

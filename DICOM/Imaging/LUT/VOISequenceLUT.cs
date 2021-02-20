@@ -1,13 +1,15 @@
-// Copyright (c) 2012-2018 fo-dicom contributors.
+// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
+using System.Linq;
+using Dicom.IO;
 
 namespace Dicom.Imaging.LUT
 {
     public class VOISequenceLUT : ILUT
     {
-        private GrayscaleRenderOptions _renderOptions;
+        private readonly GrayscaleRenderOptions _renderOptions;
 
         private int _nrOfEntries;
 
@@ -20,7 +22,7 @@ namespace Dicom.Imaging.LUT
         #region Public Constructors
 
         /// <summary>
-        /// Initialize new instance of <seealso cref="Dicom.Imaging.LUT.VOISequenceLUT"/> using the specified VOI LUT Descriptor and Data
+        /// Initialize new instance of <seealso cref="VOISequenceLUT"/> using the specified VOI LUT Descriptor and Data
         /// </summary>
         /// <param name="options">Render options</param>
         public VOISequenceLUT(GrayscaleRenderOptions options)
@@ -39,6 +41,10 @@ namespace Dicom.Imaging.LUT
         public int MinimumOutputValue => _LUTDataArray[0];
 
         public int MaximumOutputValue => _LUTDataArray[_nrOfEntries - 1];
+
+        public int NumberOfBitsPerEntry => _nrOfBitsPerEntry;
+
+        public int NumberOfEntries => _nrOfEntries;
 
         public int this[int value]
         {
@@ -70,21 +76,25 @@ namespace Dicom.Imaging.LUT
                 case "OW":
                 {
                     var LUTData = LUTDataElement as DicomOtherWord;
-                    _LUTDataArray = ConvertAll(Dicom.IO.ByteConverter.ToArray<ushort>(LUTData.Buffer), x => (int)x);
+                    _LUTDataArray = ConvertAll(ByteConverter.ToArray<ushort>(LUTData.Buffer), x => (int)x);
                     break;
                 }
                 case "US":
                 {
                     var LUTData = LUTDataElement as DicomUnsignedShort;
-                    _LUTDataArray = ConvertAll(Dicom.IO.ByteConverter.ToArray<ushort>(LUTData.Buffer), x => (int)x);
+                    _LUTDataArray = ConvertAll(ByteConverter.ToArray<ushort>(LUTData.Buffer), x => (int)x);
                     break;
                 }
                 case "SS":
                 {
                     var LUTData = LUTDataElement as DicomSignedShort;
-                    _LUTDataArray = ConvertAll(Dicom.IO.ByteConverter.ToArray<short>(LUTData.Buffer), x => (int)x);
+                    _LUTDataArray = ConvertAll(ByteConverter.ToArray<short>(LUTData.Buffer), x => (int)x);
                     break;
                 }
+            }
+            if (_LUTDataArray.Count() < _nrOfEntries)
+            {
+                throw new DicomImagingException($"Number of entries in VOI LUT Sequence do not match");
             }
         }
 
@@ -108,6 +118,11 @@ namespace Dicom.Imaging.LUT
                 _nrOfEntries = LUTDescriptor.Get<int>(0);
                 _firstInputValue = LUTDescriptor.Get<int>(1);
                 _nrOfBitsPerEntry = LUTDescriptor.Get<int>(2);
+            }
+            // according to DICOM Standard Section C.11.2.1.1
+            if (_nrOfEntries == 0)
+            {
+                _nrOfEntries = 1 << 16;
             }
         }
 

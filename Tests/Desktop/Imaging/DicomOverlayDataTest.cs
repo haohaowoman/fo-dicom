@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using Xunit;
@@ -152,6 +152,34 @@ namespace Dicom.Imaging
 
             var actual = od.OriginY;
             Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void OriginXSetter_ReturnsValueAtIndex1()
+        {
+            const int expected = 96;
+            const ushort group = 0x6012;
+
+            DicomDataset dataset = new DicomDataset();
+            DicomOverlayData overlayData = new DicomOverlayData(dataset, group);
+            overlayData.OriginX = expected;
+
+            int originX = dataset.GetValueOrDefault<short>(new DicomTag(group, 0x0050), 1, 1);
+            Assert.Equal(expected, originX);
+        }
+
+        [Fact]
+        public void OriginYSetter_ReturnsValueAtIndex0()
+        {
+            const int expected = 96;
+            const ushort group = 0x6012;
+
+            DicomDataset dataset = new DicomDataset();
+            DicomOverlayData overlayData = new DicomOverlayData(dataset, group);
+            overlayData.OriginY = expected;
+
+            int originY = dataset.GetValueOrDefault<short>(new DicomTag(group, 0x0050), 0, 1);
+            Assert.Equal(expected, originY);
         }
     }
 }

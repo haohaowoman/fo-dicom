@@ -1,5 +1,7 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
+
+using System.Diagnostics;
 
 namespace Dicom.Helpers
 {
@@ -48,6 +50,18 @@ namespace Dicom.Helpers
         {
             if (level < _minimumLevel)
                 return;
+
+            if (args != null)
+            {
+                for (int i = 0; i < args.Length; i++)
+                {
+                    var arg = args[i];
+                    if (arg is Exception e)
+                    {
+                        args[i] = e.Demystify();
+                    }
+                }
+            }
 
             var prefix = _prefixEnrichers.Aggregate(
                 $"{nameof(XUnitDicomLogger), 20} {level.ToString().ToUpper(), 7}",

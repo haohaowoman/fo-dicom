@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System;
@@ -188,6 +188,7 @@ namespace Dicom.IO.Reader
             internal DicomReaderResult DoWork(IByteSource source)
             {
                 ResetState();
+                source = ConvertSource(source);
                 ParseDataset(source);
                 return _result;
             }
@@ -201,26 +202,38 @@ namespace Dicom.IO.Reader
             internal async Task<DicomReaderResult> DoWorkAsync(IByteSource source)
             {
                 ResetState();
+                source = ConvertSource(source);
                 await ParseDatasetAsync(source).ConfigureAwait(false);
                 return _result;
             }
 #endif
 
+            private IByteSource ConvertSource(IByteSource source)
+                => _isDeflated ? Decompress(source) : source;
+
+
             private void ParseDataset(IByteSource source)
             {
-                if (_isDeflated)
-                {
-                    source = Decompress(source);
-                }
-
                 _result = DicomReaderResult.Processing;
 
                 while (!source.IsEOF && !source.HasReachedMilestone() && _result == DicomReaderResult.Processing)
                 {
-                    if (!ParseTag(source)) return;
-                    if (!ParseVR(source)) return;
-                    if (!ParseLength(source)) return;
-                    if (!ParseValue(source)) return;
+                    if (!ParseTag(source))
+                    {
+                        return;
+                    }
+                    if (!ParseVR(source))
+                    {
+                        return;
+                    }
+                    if (!ParseLength(source))
+                    {
+                        return;
+                    }
+                    if (!ParseValue(source))
+                    {
+                        return;
+                    }
                 }
 
                 if (source.HasReachedMilestone())
@@ -230,7 +243,10 @@ namespace Dicom.IO.Reader
                     return;
                 }
 
-                if (_result != DicomReaderResult.Processing) return;
+                if (_result != DicomReaderResult.Processing)
+                {
+                    return;
+                }
 
                 // end of processing
                 _result = DicomReaderResult.Success;
@@ -239,19 +255,26 @@ namespace Dicom.IO.Reader
 #if !NET35
             private async Task ParseDatasetAsync(IByteSource source)
             {
-                if (_isDeflated)
-                {
-                    source = Decompress(source);
-                }
-
                 _result = DicomReaderResult.Processing;
 
                 while (!source.IsEOF && !source.HasReachedMilestone() && _result == DicomReaderResult.Processing)
                 {
-                    if (!ParseTag(source)) return;
-                    if (!ParseVR(source)) return;
-                    if (!ParseLength(source)) return;
-                    if (!await ParseValueAsync(source).ConfigureAwait(false)) return;
+                    if (!ParseTag(source))
+                    {
+                        return;
+                    }
+                    if (!ParseVR(source))
+                    {
+                        return;
+                    }
+                    if (!ParseLength(source))
+                    {
+                        return;
+                    }
+                    if (!await ParseValueAsync(source).ConfigureAwait(false))
+                    {
+                        return;
+                    }
                 }
 
                 if (source.HasReachedMilestone())
@@ -261,7 +284,10 @@ namespace Dicom.IO.Reader
                     return;
                 }
 
-                if (_result != DicomReaderResult.Processing) return;
+                if (_result != DicomReaderResult.Processing)
+                {
+                    return;
+                }
 
                 // end of processing
                 _result = DicomReaderResult.Success;
@@ -270,25 +296,16 @@ namespace Dicom.IO.Reader
 
             private IByteSource Decompress(IByteSource source)
             {
-                using (var compressed = new MemoryStream())
+                var compressed = source.GetStream();
+
+                var decompressed = new MemoryStream();
+                using (var decompressor = new DeflateStream(compressed, CompressionMode.Decompress, true))
                 {
-                    // It is implicitly assumed that the rest of the byte source is compressed.
-                    while (!source.IsEOF)
-                    {
-                        compressed.WriteByte(source.GetUInt8());
-                    }
-
-                    compressed.Seek(0, SeekOrigin.Begin);
-
-                    var decompressed = new MemoryStream();
-                    using (var decompressor = new DeflateStream(compressed, CompressionMode.Decompress, true))
-                    {
-                        decompressor.CopyTo(decompressed);
-                    }
-
-                    decompressed.Seek(0, SeekOrigin.Begin);
-                    return new StreamByteSource(decompressed, FileReadOption.Default);
+                    decompressor.CopyTo(decompressed);
                 }
+
+                decompressed.Seek(0, SeekOrigin.Begin);
+                return new StreamByteSource(decompressed, FileReadOption.Default);
             }
 
             private bool ParseTag(IByteSource source)
@@ -307,7 +324,12 @@ namespace Dicom.IO.Reader
                     var element = source.GetUInt16();
                     DicomPrivateCreator creator = null;
 
-                    if (@group.IsOdd() && element > 0x00ff)
+                    // according to
+                    // http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.8.html
+                    // The requirements of this section do not allow any use of elements in the ranges 
+                    // (gggg,0001-000F) and (gggg,0100-0FFF) where gggg is odd.
+                    // So element at [0x0100-0x0FFF] should not has a creator
+                    if (@group.IsOdd() && element >= 0x1000)
                     {
                         var card = (uint)(@group << 16) + (uint)(element >> 8);
                         lock (_locker)
@@ -412,7 +434,7 @@ namespace Dicom.IO.Reader
                             // change 20161216: if changing from UN to UL then ParseLength causes a error, since length in UL is 2 bytes while length in UN is 6 bytes. 
                             // so the source hat UN and coded the length in 6 bytes. if here the VR was changed to UL then ParseLength would only read 2 bytes and the parser is then wrong.
                             // but no worry: in ParseValue in the first lines there is a lookup in the Dictionary of DicomTags and there the VR is changed to UL so that the value is finally interpreted correctly as UL.
-                           // _vr = DicomVR.UL;
+                            //_vr = DicomVR.UL;
                             break;
                         }
                         if (_isExplicitVR)
@@ -423,7 +445,11 @@ namespace Dicom.IO.Reader
 
                     if (_tag.IsPrivate)
                     {
-                        if (_tag.Element != 0x0000 && _tag.Element <= 0x00ff && _vr == DicomVR.UN)
+                        // according to
+                        // http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.8.html
+                        // Private Creator Data Elements numbered (gggg,0010-00FF) (gggg is odd)
+                        // The VR of the private identification code shall be LO (Long String) and the VM shall be equal to 1.
+                        if (_tag.Element >= 0x0010 && _tag.Element <= 0x00ff && _vr == DicomVR.UN)
                         {
                             _vr = DicomVR.LO; // force private creator to LO
                         }
@@ -570,7 +596,7 @@ namespace Dicom.IO.Reader
                         }
                         break;
                     }
-
+                    long NowIndex = source.Position;
                     // Fix to handle sequence items not associated with any sequence (#364)
                     if (_tag.Equals(DicomTag.Item))
                     {
@@ -583,7 +609,12 @@ namespace Dicom.IO.Reader
                         // start of sequence
                         _observer.OnBeginSequence(source, _tag, _length);
                         _parseStage = ParseStage.Tag;
-                        if (_length != UndefinedLength)
+                        if (_length == 0)
+                        {
+                            _implicit = false;
+                            source.PushMilestone((uint)(source.Position-NowIndex));
+                        }
+                        else if (_length != UndefinedLength)
                         {
                             _implicit = false;
                             source.PushMilestone(_length);
@@ -650,7 +681,11 @@ namespace Dicom.IO.Reader
                     }
 
                     // parse private creator value and add to lookup table
-                    if (_tag.IsPrivate && _tag.Element != 0x0000 && _tag.Element <= 0x00ff)
+                    // according to
+                    // http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.8.html
+                    // Private Creator Data Elements numbered (gggg,0010-00FF) (gggg is odd)
+                    // The VR of the private identification code shall be LO (Long String) and the VM shall be equal to 1.
+                    if (_tag.IsPrivate && _tag.Element >= 0x0010 && _tag.Element <= 0x00ff)
                     {
                         var creator =
                             DicomEncoding.Default.GetString(buffer.Data, 0, buffer.Data.Length)
@@ -794,7 +829,11 @@ namespace Dicom.IO.Reader
                     _observer.OnElement(source, _tag, _vr, buffer);
 
                     // parse private creator value and add to lookup table
-                    if (_tag.IsPrivate && _tag.Element != 0x0000 && _tag.Element <= 0x00ff)
+                    // according to
+                    // http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.8.html
+                    // Private Creator Data Elements numbered (gggg,0010-00FF) (gggg is odd)
+                    // The VR of the private identification code shall be LO (Long String) and the VM shall be equal to 1.
+                    if (_tag.IsPrivate && _tag.Element >= 0x0010 && _tag.Element <= 0x00ff)
                     {
                         var creator =
                             DicomEncoding.Default.GetString(buffer.Data, 0, buffer.Data.Length)
@@ -819,8 +858,14 @@ namespace Dicom.IO.Reader
 
                 while (!source.IsEOF && !source.HasReachedMilestone())
                 {
-                    if (!ParseItemSequenceTag(source)) return;
-                    if (!ParseItemSequenceValue(source)) return;
+                    if (!ParseItemSequenceTag(source))
+                    {
+                        return;
+                    }
+                    if (!ParseItemSequenceValue(source))
+                    {
+                        return;
+                    }
                 }
 
                 ParseItemSequencePostProcess(source);
@@ -833,8 +878,14 @@ namespace Dicom.IO.Reader
 
                 while (!source.IsEOF && !source.HasReachedMilestone())
                 {
-                    if (!ParseItemSequenceTag(source)) return;
-                    if (!await ParseItemSequenceValueAsync(source).ConfigureAwait(false)) return;
+                    if (!ParseItemSequenceTag(source))
+                    {
+                        return;
+                    }
+                    if (!await ParseItemSequenceValueAsync(source).ConfigureAwait(false))
+                    {
+                        return;
+                    }
                 }
 
                 ParseItemSequencePostProcess(source);
@@ -1022,8 +1073,14 @@ namespace Dicom.IO.Reader
 
                 while (!source.IsEOF)
                 {
-                    if (!ParseFragmentSequenceTag(source)) return;
-                    if (!ParseFragmentSequenceValue(source)) return;
+                    if (!ParseFragmentSequenceTag(source))
+                    {
+                        return;
+                    }
+                    if (!ParseFragmentSequenceValue(source))
+                    {
+                        return;
+                    }
                 }
             }
 
@@ -1034,8 +1091,14 @@ namespace Dicom.IO.Reader
 
                 while (!source.IsEOF)
                 {
-                    if (!ParseFragmentSequenceTag(source)) return;
-                    if (!await ParseFragmentSequenceValueAsync(source).ConfigureAwait(false)) return;
+                    if (!ParseFragmentSequenceTag(source))
+                    {
+                        return;
+                    }
+                    if (!await ParseFragmentSequenceValueAsync(source).ConfigureAwait(false))
+                    {
+                        return;
+                    }
                 }
             }
 #endif
@@ -1055,7 +1118,7 @@ namespace Dicom.IO.Reader
                     var group = source.GetUInt16();
                     var element = source.GetUInt16();
 
-                    DicomTag tag = new DicomTag(@group, element);
+                    var tag = new DicomTag(@group, element);
 
                     if (tag != DicomTag.Item && tag != DicomTag.SequenceDelimitationItem)
                     {
@@ -1138,7 +1201,10 @@ namespace Dicom.IO.Reader
                     var element = source.GetUInt16();
                     var tag = new DicomTag(group, element);
 
-                    if (tag == DicomTag.Item || tag == DicomTag.SequenceDelimitationItem) return true;
+                    if (tag == DicomTag.Item || tag == DicomTag.SequenceDelimitationItem)
+                    {
+                        return true;
+                    }
                 }
                 finally
                 {
@@ -1163,12 +1229,16 @@ namespace Dicom.IO.Reader
                     {
                         // Length non-zero, end skipping (#223)
                         if (length > 0)
+                        {
                             break;
+                        }
 
                         // Handle scenario where last tag is private sequence with empty items (#487)
                         count -= 8;
                         if (count <= 0)
+                        {
                             return false;
+                        }
                     }
 
                     source.GetUInt16(); // group
@@ -1176,9 +1246,15 @@ namespace Dicom.IO.Reader
 
                     var bytes = source.GetBytes(2);
                     var vr = Encoding.UTF8.GetString(bytes, 0, bytes.Length);
-                    if (DicomVR.TryParse(vr, out DicomVR dummy)) return !isExplicitVR;
+                    if (DicomVR.TryParse(vr, out DicomVR dummy))
+                    {
+                        return !isExplicitVR;
+                    }
                     // unable to parse VR
-                    if (isExplicitVR) return true;
+                    if (isExplicitVR)
+                    {
+                        return true;
+                    }
                 }
                 finally
                 {

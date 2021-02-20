@@ -1,9 +1,10 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using Dicom.Log;
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,6 +13,8 @@ namespace Dicom.Network
 {
     internal class SimpleCStoreProvider : DicomService, IDicomServiceProvider, IDicomCStoreProvider
     {
+        private List<string> _storedFiles = new List<string>();
+
         private static readonly DicomTransferSyntax[] AcceptedTransferSyntaxes =
         {
             DicomTransferSyntax.ExplicitVRLittleEndian,
@@ -67,6 +70,11 @@ namespace Dicom.Network
 
         public void OnConnectionClosed(Exception exception)
         {
+            foreach(var tmpFile in _storedFiles)
+            {
+                File.Delete(tmpFile);
+            }
+            _storedFiles.Clear();
         }
 
         public DicomCStoreResponse OnCStoreRequest(DicomCStoreRequest request)
@@ -79,6 +87,8 @@ namespace Dicom.Network
             request.File.FileMetaInfo.ValidateItems = false;
 
             request.File.Save(tempName);
+
+            _storedFiles.Add(tempName);
 
             return new DicomCStoreResponse(request, DicomStatus.Success)
             {

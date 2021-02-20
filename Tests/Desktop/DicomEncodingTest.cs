@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2012-2019 fo-dicom contributors.
+﻿// Copyright (c) 2012-2021 fo-dicom contributors.
 // Licensed under the Microsoft Public License (MS-PL).
 
 using System.Text;
@@ -33,6 +33,16 @@ namespace Dicom
             var exception = Record.Exception(() => { codePage = DicomEncoding.GetEncoding("GB18030").CodePage; });
             Assert.Null(exception);
             Assert.Equal(54936, codePage);
+        }
+
+        [Fact]
+        public void GetCharset_GB18030()
+        {
+            var expected = "GB18030";
+            var encoding = DicomEncoding.GetEncoding("GB18030");
+            var actual = DicomEncoding.GetCharset(encoding);
+
+            Assert.Equal(expected, actual);
         }
     }
 }
